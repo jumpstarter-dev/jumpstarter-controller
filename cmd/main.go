@@ -146,6 +146,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Lease")
 		os.Exit(1)
 	}
+	if err = (&controller.CustomRunReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CustomRun")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	watchClient, err := client.NewWithWatch(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
