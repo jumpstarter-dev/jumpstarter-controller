@@ -17,12 +17,25 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 
+	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	knative "knative.dev/pkg/apis"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CustomRunReconciler reconciles a CustomRun object
@@ -45,9 +58,110 @@ type CustomRunReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var customrun tektonv1beta1.CustomRun
+	err := r.Get(ctx, req.NamespacedName, &customrun)
+	if apierrors.IsNotFound(err) {
+		logger.Info("reconcile: CustomRun deleted", "customrun", req.NamespacedName)
+		// Request object not found, could have been deleted after reconcile request.
+		// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+		return reconcile.Result{}, nil
+	}
+
+	if err != nil {
+		logger.Error(err, "reconcile: unable to fetch CustomRun")
+		return ctrl.Result{}, err
+	}
+
+	customSpec := customrun.Spec.CustomSpec
+	if customSpec != nil {
+		if customSpec.APIVersion == "jumpstarter.dev/v1alpha1" && customSpec.Kind == "Lease" {
+			// task already completed
+			if !customrun.Status.GetCondition(knative.ConditionSucceeded).IsUnknown() {
+				return reconcile.Result{}, err
+			}
+
+			var leaseSpec jumpstarterdevv1alpha1.LeaseSpec
+			if err := json.NewDecoder(bytes.NewBuffer(customSpec.Spec.Raw)).Decode(&leaseSpec); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			var lease jumpstarterdevv1alpha1.Lease
+			err := r.Get(ctx, types.NamespacedName{
+				Namespace: customrun.Namespace,
+				Name:      customrun.Name,
+			}, &lease)
+
+			if err == nil {
+				lease.Spec = leaseSpec
+				if err := controllerutil.SetOwnerReference(&customrun, &lease, r.Scheme); err != nil {
+					return reconcile.Result{}, err
+				}
+				if err := r.Update(ctx, &lease); err != nil {
+					logger.Info("reconcile: unable to update lease", "customrun", req.NamespacedName)
+				}
+			} else if apierrors.IsNotFound(err) {
+				lease.ObjectMeta = metav1.ObjectMeta{
+					Namespace: customrun.Namespace,
+					Name:      customrun.Name,
+				}
+				lease.Spec = leaseSpec
+				if err := controllerutil.SetOwnerReference(&customrun, &lease, r.Scheme); err != nil {
+					return reconcile.Result{}, err
+				}
+				if err = r.Create(ctx, &lease); err != nil {
+					logger.Info("reconcile: unable to create lease", "customrun", req.NamespacedName)
+				}
+			} else {
+				return reconcile.Result{}, err
+			}
+
+			if meta.IsStatusConditionTrue(
+				lease.Status.Conditions,
+				string(jumpstarterdevv1alpha1.LeaseConditionTypeReady),
+			) {
+				customrun.Status.SetCondition(&knative.Condition{
+					Type:     knative.ConditionSucceeded,
+					Status:   corev1.ConditionTrue,
+					Severity: knative.ConditionSeverityInfo,
+					LastTransitionTime: knative.VolatileTime{
+						Inner: metav1.Now(),
+					},
+					Reason: "Ready",
+				})
+			} else {
+				if meta.IsStatusConditionTrue(
+					lease.Status.Conditions,
+					string(jumpstarterdevv1alpha1.LeaseConditionTypeUnsatisfiable),
+				) {
+					customrun.Status.SetCondition(&knative.Condition{
+						Type:     knative.ConditionSucceeded,
+						Status:   corev1.ConditionFalse,
+						Severity: knative.ConditionSeverityInfo,
+						LastTransitionTime: knative.VolatileTime{
+							Inner: metav1.Now(),
+						},
+						Reason: "Unsatisfiable",
+					})
+				} else {
+					customrun.Status.SetCondition(&knative.Condition{
+						Type:     knative.ConditionSucceeded,
+						Status:   corev1.ConditionUnknown,
+						Severity: knative.ConditionSeverityInfo,
+						LastTransitionTime: knative.VolatileTime{
+							Inner: metav1.Now(),
+						},
+						Reason: "Pending",
+					})
+				}
+			}
+
+			if err := r.Status().Update(ctx, &customrun); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -55,7 +169,7 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *CustomRunReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
-		// For().
+		For(&tektonv1beta1.CustomRun{}).
+		Owns(&jumpstarterdevv1alpha1.Lease{}, builder.MatchEveryOwner).
 		Complete(r)
 }

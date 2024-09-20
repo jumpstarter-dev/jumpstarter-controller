@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -163,6 +164,6 @@ func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.
 func (r *ExporterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&jumpstarterdevv1alpha1.Exporter{}).
-		Owns(&jumpstarterdevv1alpha1.Lease{}).
+		Owns(&jumpstarterdevv1alpha1.Lease{}, builder.MatchEveryOwner).
 		Complete(r)
 }

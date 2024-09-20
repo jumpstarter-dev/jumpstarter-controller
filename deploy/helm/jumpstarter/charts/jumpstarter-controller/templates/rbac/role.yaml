@@ -46,3 +46,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - tekton.dev
+  resources:
+  - customruns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - tekton.dev
+  resources:
+  - customruns/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - tekton.dev
+  resources:
+  - customruns/status
+  verbs:
+  - get
+  - patch
+  - update

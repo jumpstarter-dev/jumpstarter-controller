@@ -1,0 +1,15 @@
+apiVersion: tekton.dev/v1beta1
+kind: CustomRun
+metadata:
+  labels:
+    app.kubernetes.io/name: jumpstarter-router
+    app.kubernetes.io/managed-by: kustomize
+  generateName: customrun-sample-
+spec:
+  customSpec:
+    apiVersion: jumpstarter.dev/v1alpha1
+    kind: Lease
+    spec:
+      clientRef:
+        name: client-sample
+      duration: 10s
