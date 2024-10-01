@@ -117,10 +117,17 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return reconcile.Result{}, err
 			}
 
+			now := metav1.Now()
+
+			if customrun.Status.StartTime == nil {
+				customrun.Status.StartTime = &now
+			}
+
 			if meta.IsStatusConditionTrue(
 				lease.Status.Conditions,
 				string(jumpstarterdevv1alpha1.LeaseConditionTypeReady),
 			) {
+				customrun.Status.CompletionTime = &now
 				customrun.Status.SetCondition(&knative.Condition{
 					Type:     knative.ConditionSucceeded,
 					Status:   corev1.ConditionTrue,
@@ -135,6 +142,7 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 					lease.Status.Conditions,
 					string(jumpstarterdevv1alpha1.LeaseConditionTypeUnsatisfiable),
 				) {
+					customrun.Status.CompletionTime = &now
 					customrun.Status.SetCondition(&knative.Condition{
 						Type:     knative.ConditionSucceeded,
 						Status:   corev1.ConditionFalse,
