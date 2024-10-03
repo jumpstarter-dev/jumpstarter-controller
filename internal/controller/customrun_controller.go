@@ -61,25 +61,32 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger := log.FromContext(ctx)
 
 	var customrun tektonv1beta1.CustomRun
-	err := r.Get(ctx, req.NamespacedName, &customrun)
-	if apierrors.IsNotFound(err) {
-		logger.Info("reconcile: CustomRun deleted", "customrun", req.NamespacedName)
+	if err := r.Get(ctx, req.NamespacedName, &customrun); err != nil {
+		logger.Info("reconcile: CustomRun: failed to get", "customrun", req.NamespacedName)
 		// Request object not found, could have been deleted after reconcile request.
 		// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err != nil {
-		logger.Error(err, "reconcile: unable to fetch CustomRun")
-		return ctrl.Result{}, err
+	if (customrun.Spec.CustomRef == nil) && (customrun.Spec.CustomSpec == nil) {
+		logger.Info("reconcile: CustomRun: both customRef and customSpec is unset", "customrun", req.NamespacedName)
+		return ctrl.Result{}, nil
 	}
 
-	customSpec := customrun.Spec.CustomSpec
-	if customSpec != nil {
+	if (customrun.Spec.CustomRef != nil) && (customrun.Spec.CustomSpec != nil) {
+		logger.Info("reconcile: CustomRun: none of customRef and customSpec is unset", "customrun", req.NamespacedName)
+		return ctrl.Result{}, nil
+	}
+
+	if customrun.Spec.CustomRef != nil {
+	}
+
+	if customrun.Spec.CustomSpec != nil {
+		customSpec := customrun.Spec.CustomSpec
 		if customSpec.APIVersion == "jumpstarter.dev/v1alpha1" && customSpec.Kind == "Lease" {
 			// task already completed
 			if !customrun.Status.GetCondition(knative.ConditionSucceeded).IsUnknown() {
-				return reconcile.Result{}, err
+				return reconcile.Result{}, nil
 			}
 
 			var leaseSpec jumpstarterdevv1alpha1.LeaseSpec
