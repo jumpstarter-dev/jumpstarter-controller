@@ -79,18 +79,46 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if customrun.Spec.CustomRef != nil {
+		customRef := customrun.Spec.CustomRef
+		if customRef.APIVersion == "jumpstarter.dev/v1alpha1" && customRef.Kind == "Lease" {
+			if customRef.Name == "" {
+				logger.Info("reconcile: CustomRun: name in customRef is unset", "customrun", req.NamespacedName)
+				return ctrl.Result{}, nil
+			}
+
+			var lease jumpstarterdevv1alpha1.Lease
+			if err := r.Get(
+				ctx,
+				types.NamespacedName{
+					Namespace: customrun.Namespace,
+					Name:      customRef.Name,
+				},
+				&lease,
+			); err != nil {
+				logger.Info("reconcile: CustomRun: failed to get Lease referred by customRef", "customrun", req.NamespacedName)
+				return ctrl.Result{}, err
+			}
+
+			if err := controllerutil.SetOwnerReference(&customrun, &lease, r.Scheme); err != nil {
+				logger.Info("reconcile: CustomRun: failed to set Lease ownerReferernces", "customrun", req.NamespacedName)
+				return reconcile.Result{}, err
+			}
+
+			if err := r.Update(ctx, &lease); err != nil {
+				logger.Info("reconcile: CustomRun: unable to update lease", "customrun", req.NamespacedName)
+				return reconcile.Result{}, err
+			}
+
+			return reconcile.Result{}, r.UpdateStatus(ctx, &customrun, &lease)
+		}
 	}
 
 	if customrun.Spec.CustomSpec != nil {
 		customSpec := customrun.Spec.CustomSpec
 		if customSpec.APIVersion == "jumpstarter.dev/v1alpha1" && customSpec.Kind == "Lease" {
-			// task already completed
-			if !customrun.Status.GetCondition(knative.ConditionSucceeded).IsUnknown() {
-				return reconcile.Result{}, nil
-			}
-
 			var leaseSpec jumpstarterdevv1alpha1.LeaseSpec
 			if err := json.NewDecoder(bytes.NewBuffer(customSpec.Spec.Raw)).Decode(&leaseSpec); err != nil {
+				logger.Info("reconcile: CustomRun: unable to decode customSpec", "customrun", req.NamespacedName)
 				return reconcile.Result{}, err
 			}
 
@@ -102,83 +130,103 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			if err == nil {
 				lease.Spec = leaseSpec
+
 				if err := controllerutil.SetOwnerReference(&customrun, &lease, r.Scheme); err != nil {
 					return reconcile.Result{}, err
 				}
+
 				if err := r.Update(ctx, &lease); err != nil {
 					logger.Info("reconcile: unable to update lease", "customrun", req.NamespacedName)
+					return reconcile.Result{}, err
 				}
+
+				return reconcile.Result{}, r.UpdateStatus(ctx, &customrun, &lease)
 			} else if apierrors.IsNotFound(err) {
 				lease.ObjectMeta = metav1.ObjectMeta{
 					Namespace: customrun.Namespace,
 					Name:      customrun.Name,
 				}
 				lease.Spec = leaseSpec
+
 				if err := controllerutil.SetOwnerReference(&customrun, &lease, r.Scheme); err != nil {
 					return reconcile.Result{}, err
 				}
+
 				if err = r.Create(ctx, &lease); err != nil {
 					logger.Info("reconcile: unable to create lease", "customrun", req.NamespacedName)
+					return reconcile.Result{}, err
 				}
+
+				return reconcile.Result{}, r.UpdateStatus(ctx, &customrun, &lease)
 			} else {
 				return reconcile.Result{}, err
-			}
-
-			now := metav1.Now()
-
-			if customrun.Status.StartTime == nil {
-				customrun.Status.StartTime = &now
-			}
-
-			if meta.IsStatusConditionTrue(
-				lease.Status.Conditions,
-				string(jumpstarterdevv1alpha1.LeaseConditionTypeReady),
-			) {
-				customrun.Status.CompletionTime = &now
-				customrun.Status.SetCondition(&knative.Condition{
-					Type:     knative.ConditionSucceeded,
-					Status:   corev1.ConditionTrue,
-					Severity: knative.ConditionSeverityInfo,
-					LastTransitionTime: knative.VolatileTime{
-						Inner: metav1.Now(),
-					},
-					Reason: "Ready",
-				})
-			} else {
-				if meta.IsStatusConditionTrue(
-					lease.Status.Conditions,
-					string(jumpstarterdevv1alpha1.LeaseConditionTypeUnsatisfiable),
-				) {
-					customrun.Status.CompletionTime = &now
-					customrun.Status.SetCondition(&knative.Condition{
-						Type:     knative.ConditionSucceeded,
-						Status:   corev1.ConditionFalse,
-						Severity: knative.ConditionSeverityInfo,
-						LastTransitionTime: knative.VolatileTime{
-							Inner: metav1.Now(),
-						},
-						Reason: "Unsatisfiable",
-					})
-				} else {
-					customrun.Status.SetCondition(&knative.Condition{
-						Type:     knative.ConditionSucceeded,
-						Status:   corev1.ConditionUnknown,
-						Severity: knative.ConditionSeverityInfo,
-						LastTransitionTime: knative.VolatileTime{
-							Inner: metav1.Now(),
-						},
-						Reason: "Pending",
-					})
-				}
-			}
-
-			if err := r.Status().Update(ctx, &customrun); err != nil {
-				return ctrl.Result{}, err
 			}
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return reconcile.Result{}, nil
+}
+
+func (r *CustomRunReconciler) UpdateStatus(
+	ctx context.Context,
+	customrun *tektonv1beta1.CustomRun,
+	lease *jumpstarterdevv1alpha1.Lease,
+) error {
+	// task already completed
+	if !customrun.Status.GetCondition(knative.ConditionSucceeded).IsUnknown() {
+		return nil
+	}
+
+	now := metav1.Now()
+
+	// set startTime if not yet set
+	if customrun.Status.StartTime == nil {
+		customrun.Status.StartTime = &now
+	}
+
+	if meta.IsStatusConditionTrue(
+		lease.Status.Conditions,
+		string(jumpstarterdevv1alpha1.LeaseConditionTypeReady),
+	) {
+		customrun.Status.CompletionTime = &now
+		customrun.Status.SetCondition(&knative.Condition{
+			Type:     knative.ConditionSucceeded,
+			Status:   corev1.ConditionTrue,
+			Severity: knative.ConditionSeverityInfo,
+			LastTransitionTime: knative.VolatileTime{
+				Inner: metav1.Now(),
+			},
+			Reason: "Ready",
+		})
+	} else {
+		if meta.IsStatusConditionTrue(
+			lease.Status.Conditions,
+			string(jumpstarterdevv1alpha1.LeaseConditionTypeUnsatisfiable),
+		) {
+			customrun.Status.CompletionTime = &now
+			customrun.Status.SetCondition(&knative.Condition{
+				Type:     knative.ConditionSucceeded,
+				Status:   corev1.ConditionFalse,
+				Severity: knative.ConditionSeverityInfo,
+				LastTransitionTime: knative.VolatileTime{
+					Inner: metav1.Now(),
+				},
+				Reason: "Unsatisfiable",
+			})
+		} else {
+			customrun.Status.SetCondition(&knative.Condition{
+				Type:     knative.ConditionSucceeded,
+				Status:   corev1.ConditionUnknown,
+				Severity: knative.ConditionSeverityInfo,
+				LastTransitionTime: knative.VolatileTime{
+					Inner: metav1.Now(),
+				},
+				Reason: "Pending",
+			})
+		}
+	}
+
+	return r.Status().Update(ctx, customrun)
 }
 
 // SetupWithManager sets up the controller with the Manager.
