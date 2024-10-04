@@ -267,6 +267,14 @@ func (s *ControllerService) Listen(req *pb.ListenRequest, stream pb.ControllerSe
 
 	defer func() {
 		s.listen.Delete(exporter.UID)
+		if err := s.Get(
+			ctx,
+			types.NamespacedName{Name: exporter.Name, Namespace: exporter.Namespace},
+			exporter,
+		); err != nil {
+			logger.Error(err, "unable to refresh exporter status, continuing anyway", "exporter", exporter)
+		}
+
 		meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
 			Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
 			Status:             metav1.ConditionFalse,
@@ -277,7 +285,7 @@ func (s *ControllerService) Listen(req *pb.ListenRequest, stream pb.ControllerSe
 			Reason: "Disconnect",
 		})
 		if err = s.Status().Update(ctx, exporter); err != nil {
-			logger.Error(err, "unable to update exporter status", "exporter", exporter)
+			logger.Error(err, "unable to update exporter status, continuing anyway", "exporter", exporter)
 		}
 	}()
 
