@@ -22,7 +22,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -54,13 +53,8 @@ import (
 type ControllerService struct {
 	pb.UnimplementedControllerServiceServer
 	client.Client
-	Scheme *runtime.Scheme
-	listen sync.Map
-}
-
-type listenContext struct {
-	cancel context.CancelFunc
-	stream pb.ControllerService_ListenServer
+	Scheme    *runtime.Scheme
+	listenMap map[types.UID](chan *pb.ListenResponse)
 }
 
 func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarterdevv1alpha1.Client, error) {
@@ -139,6 +133,15 @@ func (s *ControllerService) Register(ctx context.Context, req *pb.RegisterReques
 		},
 		Reason: "Register",
 	})
+	meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
+		Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: exporter.Generation,
+		LastTransitionTime: metav1.Time{
+			Time: time.Now(),
+		},
+		Reason: "Register",
+	})
 
 	devices := []jumpstarterdevv1alpha1.Device{}
 	for _, device := range req.Reports {
@@ -154,6 +157,8 @@ func (s *ControllerService) Register(ctx context.Context, req *pb.RegisterReques
 		logger.Error(err, "unable to update exporter status", "exporter", exporter)
 		return nil, status.Errorf(codes.Internal, "unable to update exporter status: %s", err)
 	}
+
+	s.listenMap[exporter.UID] = make(chan *pb.ListenResponse, 8)
 
 	return &pb.RegisterResponse{
 		Uuid: string(exporter.UID),
@@ -185,6 +190,16 @@ func (s *ControllerService) Unregister(
 		Reason:  "Bye",
 		Message: req.GetReason(),
 	})
+	meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
+		Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: exporter.Generation,
+		LastTransitionTime: metav1.Time{
+			Time: time.Now(),
+		},
+		Reason:  "Bye",
+		Message: req.GetReason(),
+	})
 
 	if err := s.Status().Patch(ctx, exporter, original); err != nil {
 		logger.Error(err, "unable to update exporter status", "exporter", exporter.Name)
@@ -192,6 +207,8 @@ func (s *ControllerService) Unregister(
 	}
 
 	logger.Info("exporter unregistered, updated as unavailable", "exporter", exporter.Name)
+
+	delete(s.listenMap, exporter.UID)
 
 	return &pb.UnregisterResponse{}, nil
 }
@@ -244,70 +261,21 @@ func (s *ControllerService) ListExporters(
 	}, nil
 }
 
-func (s *ControllerService) Listen(req *pb.ListenRequest, stream pb.ControllerService_ListenServer) error {
-	ctx := stream.Context()
+func (s *ControllerService) Listen(ctx context.Context, req *pb.ListenRequest) (*pb.ListenResponse, error) {
 	logger := log.FromContext(ctx)
 
 	exporter, err := s.authenticateExporter(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	lctx := listenContext{
-		cancel: cancel,
-		stream: stream,
+	if _, ok := s.listenMap[exporter.UID]; !ok {
+		logger.Error(fmt.Errorf("not registered"), "exporter not registered, cannot listen")
 	}
 
-	previous, loaded := s.listen.Swap(exporter.UID, lctx)
+	// TODO: set exporter to offline if listen hasn't been called for a while
 
-	if loaded {
-		logger.Info("replacing old listener", "exporter", exporter.GetName())
-		previous.(listenContext).cancel()
-	}
-
-	defer func() {
-		s.listen.Delete(exporter.UID)
-		if err := s.Get(
-			ctx,
-			types.NamespacedName{Name: exporter.Name, Namespace: exporter.Namespace},
-			exporter,
-		); err != nil {
-			logger.Error(err, "unable to refresh exporter status, continuing anyway", "exporter", exporter)
-		}
-		original := client.MergeFrom(exporter.DeepCopy())
-		meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
-			Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: exporter.Generation,
-			LastTransitionTime: metav1.Time{
-				Time: time.Now(),
-			},
-			Reason: "Disconnect",
-		})
-		if err = s.Status().Patch(ctx, exporter, original); err != nil {
-			logger.Error(err, "unable to update exporter status, continuing anyway", "exporter", exporter)
-		}
-	}()
-
-	original := client.MergeFrom(exporter.DeepCopy())
-	meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
-		Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
-		Status:             metav1.ConditionTrue,
-		ObservedGeneration: exporter.Generation,
-		LastTransitionTime: metav1.Time{
-			Time: time.Now(),
-		},
-		Reason: "Connect",
-	})
-	if err = s.Status().Patch(ctx, exporter, original); err != nil {
-		logger.Error(err, "unable to update exporter status", "exporter", exporter)
-	}
-
-	<-ctx.Done()
-	return nil
+	return <-s.listenMap[exporter.UID], nil
 }
 
 func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.DialResponse, error) {
@@ -320,7 +288,7 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 
 	// TODO: authorize user with Client/Lease resource
 
-	value, ok := s.listen.Load(types.UID(req.GetUuid()))
+	value, ok := s.listenMap[types.UID(req.GetUuid())]
 	if !ok {
 		logger.Error(nil, "no matching listener", "client", client.GetName(), "uuid", req.GetUuid())
 		return nil, status.Errorf(codes.Unavailable, "no matching listener")
@@ -349,14 +317,9 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 	// TODO: find best router from list
 	endpoint := routerEndpoint()
 
-	response := &pb.ListenResponse{
+	value <- &pb.ListenResponse{
 		RouterEndpoint: endpoint,
 		RouterToken:    token,
-	}
-
-	if err := value.(listenContext).stream.Send(response); err != nil {
-		logger.Error(err, "failed to send listen response", "response", response)
-		return nil, err
 	}
 
 	logger.Info("Client dial assigned stream ", "client", client.GetName(), "stream", stream)
@@ -589,5 +552,6 @@ func (s *ControllerService) Start(ctx context.Context) error {
 
 // SetupWithManager sets up the controller with the Manager.
 func (s *ControllerService) SetupWithManager(mgr ctrl.Manager) error {
+	s.listenMap = make(map[types.UID]chan *pb.ListenResponse)
 	return mgr.Add(s)
 }
