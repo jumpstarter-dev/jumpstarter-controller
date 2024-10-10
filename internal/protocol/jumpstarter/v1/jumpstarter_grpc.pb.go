@@ -50,14 +50,14 @@ type ControllerServiceClient interface {
 	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
 	// Exporter listening
 	// Returns stream tokens for accepting incoming client connections
-	Listen(ctx context.Context, in *ListenRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListenResponse], error)
+	Listen(ctx context.Context, in *ListenRequest, opts ...grpc.CallOption) (*ListenResponse, error)
 	// Client connecting
 	// Returns stream token for connecting to the desired exporter
 	// Leases are checked before token issuance
 	Dial(ctx context.Context, in *DialRequest, opts ...grpc.CallOption) (*DialResponse, error)
 	// Audit events from the exporters
 	// audit events are used to track the exporter's activity
-	AuditStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[AuditStreamRequest, emptypb.Empty], error)
+	AuditStream(ctx context.Context, in *AuditStreamRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// List exporters
 	// Returns all exporters matching filter
 	ListExporters(ctx context.Context, in *ListExportersRequest, opts ...grpc.CallOption) (*ListExportersResponse, error)
@@ -102,24 +102,15 @@ func (c *controllerServiceClient) Unregister(ctx context.Context, in *Unregister
 	return out, nil
 }
 
-func (c *controllerServiceClient) Listen(ctx context.Context, in *ListenRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListenResponse], error) {
+func (c *controllerServiceClient) Listen(ctx context.Context, in *ListenRequest, opts ...grpc.CallOption) (*ListenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ControllerService_ServiceDesc.Streams[0], ControllerService_Listen_FullMethodName, cOpts...)
+	out := new(ListenResponse)
+	err := c.cc.Invoke(ctx, ControllerService_Listen_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ListenRequest, ListenResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ControllerService_ListenClient = grpc.ServerStreamingClient[ListenResponse]
 
 func (c *controllerServiceClient) Dial(ctx context.Context, in *DialRequest, opts ...grpc.CallOption) (*DialResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -131,18 +122,15 @@ func (c *controllerServiceClient) Dial(ctx context.Context, in *DialRequest, opt
 	return out, nil
 }
 
-func (c *controllerServiceClient) AuditStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[AuditStreamRequest, emptypb.Empty], error) {
+func (c *controllerServiceClient) AuditStream(ctx context.Context, in *AuditStreamRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ControllerService_ServiceDesc.Streams[1], ControllerService_AuditStream_FullMethodName, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ControllerService_AuditStream_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[AuditStreamRequest, emptypb.Empty]{ClientStream: stream}
-	return x, nil
+	return out, nil
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ControllerService_AuditStreamClient = grpc.ClientStreamingClient[AuditStreamRequest, emptypb.Empty]
 
 func (c *controllerServiceClient) ListExporters(ctx context.Context, in *ListExportersRequest, opts ...grpc.CallOption) (*ListExportersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -219,14 +207,14 @@ type ControllerServiceServer interface {
 	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
 	// Exporter listening
 	// Returns stream tokens for accepting incoming client connections
-	Listen(*ListenRequest, grpc.ServerStreamingServer[ListenResponse]) error
+	Listen(context.Context, *ListenRequest) (*ListenResponse, error)
 	// Client connecting
 	// Returns stream token for connecting to the desired exporter
 	// Leases are checked before token issuance
 	Dial(context.Context, *DialRequest) (*DialResponse, error)
 	// Audit events from the exporters
 	// audit events are used to track the exporter's activity
-	AuditStream(grpc.ClientStreamingServer[AuditStreamRequest, emptypb.Empty]) error
+	AuditStream(context.Context, *AuditStreamRequest) (*emptypb.Empty, error)
 	// List exporters
 	// Returns all exporters matching filter
 	ListExporters(context.Context, *ListExportersRequest) (*ListExportersResponse, error)
@@ -257,14 +245,14 @@ func (UnimplementedControllerServiceServer) Register(context.Context, *RegisterR
 func (UnimplementedControllerServiceServer) Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unregister not implemented")
 }
-func (UnimplementedControllerServiceServer) Listen(*ListenRequest, grpc.ServerStreamingServer[ListenResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method Listen not implemented")
+func (UnimplementedControllerServiceServer) Listen(context.Context, *ListenRequest) (*ListenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Listen not implemented")
 }
 func (UnimplementedControllerServiceServer) Dial(context.Context, *DialRequest) (*DialResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Dial not implemented")
 }
-func (UnimplementedControllerServiceServer) AuditStream(grpc.ClientStreamingServer[AuditStreamRequest, emptypb.Empty]) error {
-	return status.Errorf(codes.Unimplemented, "method AuditStream not implemented")
+func (UnimplementedControllerServiceServer) AuditStream(context.Context, *AuditStreamRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuditStream not implemented")
 }
 func (UnimplementedControllerServiceServer) ListExporters(context.Context, *ListExportersRequest) (*ListExportersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListExporters not implemented")
@@ -341,16 +329,23 @@ func _ControllerService_Unregister_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ControllerService_Listen_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ListenRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _ControllerService_Listen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(ControllerServiceServer).Listen(m, &grpc.GenericServerStream[ListenRequest, ListenResponse]{ServerStream: stream})
+	if interceptor == nil {
+		return srv.(ControllerServiceServer).Listen(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControllerService_Listen_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControllerServiceServer).Listen(ctx, req.(*ListenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ControllerService_ListenServer = grpc.ServerStreamingServer[ListenResponse]
 
 func _ControllerService_Dial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DialRequest)
@@ -370,12 +365,23 @@ func _ControllerService_Dial_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ControllerService_AuditStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ControllerServiceServer).AuditStream(&grpc.GenericServerStream[AuditStreamRequest, emptypb.Empty]{ServerStream: stream})
+func _ControllerService_AuditStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuditStreamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControllerServiceServer).AuditStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControllerService_AuditStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControllerServiceServer).AuditStream(ctx, req.(*AuditStreamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ControllerService_AuditStreamServer = grpc.ClientStreamingServer[AuditStreamRequest, emptypb.Empty]
 
 func _ControllerService_ListExporters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListExportersRequest)
@@ -501,8 +507,16 @@ var ControllerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ControllerService_Unregister_Handler,
 		},
 		{
+			MethodName: "Listen",
+			Handler:    _ControllerService_Listen_Handler,
+		},
+		{
 			MethodName: "Dial",
 			Handler:    _ControllerService_Dial_Handler,
+		},
+		{
+			MethodName: "AuditStream",
+			Handler:    _ControllerService_AuditStream_Handler,
 		},
 		{
 			MethodName: "ListExporters",
@@ -529,18 +543,7 @@ var ControllerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ControllerService_ListLeases_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Listen",
-			Handler:       _ControllerService_Listen_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "AuditStream",
-			Handler:       _ControllerService_AuditStream_Handler,
-			ClientStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "jumpstarter/v1/jumpstarter.proto",
 }
 
