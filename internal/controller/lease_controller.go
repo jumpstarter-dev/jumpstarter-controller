@@ -271,7 +271,7 @@ func (r *LeaseReconciler) ReconcileNewLease(
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
-		if err := controllerutil.SetControllerReference(&exporter, &lease, r.Scheme); err != nil {
+		if err := controllerutil.SetOwnerReference(&exporter, &lease, r.Scheme); err != nil {
 			log.Error(err, "unable to update Lease owner reference")
 			return ctrl.Result{}, err
 		}
