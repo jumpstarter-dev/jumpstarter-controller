@@ -78,6 +78,17 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	namespace := customrun.Namespace
+	for _, param := range customrun.Spec.Params {
+		if param.Name == "namespace" {
+			if param.Value.Type == tektonv1beta1.ParamTypeString {
+				if param.Value.StringVal != "" {
+					namespace = param.Value.StringVal
+				}
+			}
+		}
+	}
+
 	if customrun.Spec.CustomRef != nil {
 		customRef := customrun.Spec.CustomRef
 		if customRef.APIVersion == "jumpstarter.dev/v1alpha1" && customRef.Kind == "Lease" {
@@ -90,7 +101,7 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Get(
 				ctx,
 				types.NamespacedName{
-					Namespace: customrun.Namespace,
+					Namespace: namespace,
 					Name:      customRef.Name,
 				},
 				&lease,
@@ -124,7 +135,7 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			var lease jumpstarterdevv1alpha1.Lease
 			err := r.Get(ctx, types.NamespacedName{
-				Namespace: customrun.Namespace,
+				Namespace: namespace,
 				Name:      customrun.Name,
 			}, &lease)
 
@@ -143,7 +154,7 @@ func (r *CustomRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return reconcile.Result{}, r.UpdateStatus(ctx, &customrun, &lease)
 			} else if apierrors.IsNotFound(err) {
 				lease.ObjectMeta = metav1.ObjectMeta{
-					Namespace: customrun.Namespace,
+					Namespace: namespace,
 					Name:      customrun.Name,
 				}
 				lease.Spec = leaseSpec
