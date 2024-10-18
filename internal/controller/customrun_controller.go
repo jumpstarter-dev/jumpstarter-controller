@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -209,6 +210,40 @@ func (r *CustomRunReconciler) UpdateStatus(
 			},
 			Reason: "Ready",
 		})
+		var client jumpstarterdevv1alpha1.Client
+		if err := r.Get(
+			ctx,
+			types.NamespacedName{Namespace: lease.Namespace, Name: lease.Spec.ClientRef.Name},
+			&client,
+		); err != nil {
+			return err
+		}
+		var secret corev1.Secret
+		if err := r.Get(
+			ctx,
+			types.NamespacedName{Namespace: lease.Namespace, Name: client.Status.Credential.Name},
+			&secret,
+		); err != nil {
+			return err
+		}
+		token, ok := secret.Data["token"]
+		if !ok {
+			return fmt.Errorf("token not present in secret")
+		}
+		customrun.Status.Results = []tektonv1beta1.CustomRunResult{
+			{
+				Name:  "endpoint",
+				Value: client.Status.Endpoint,
+			},
+			{
+				Name:  "token",
+				Value: string(token),
+			},
+			{
+				Name:  "lease",
+				Value: lease.Name,
+			},
+		}
 	} else {
 		if meta.IsStatusConditionTrue(
 			lease.Status.Conditions,
