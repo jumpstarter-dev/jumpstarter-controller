@@ -78,6 +78,7 @@ func (r *LeaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	if err := r.Status().Update(ctx, &lease); err != nil {
+		logger.Error(err, "Reconcile: failed to update lease status", "lease", lease)
 		return result, err
 	}
 
