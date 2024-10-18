@@ -28,4 +28,8 @@ resources:
   domain: jumpstarter.dev
   kind: Lease
   version: v1alpha1
+- controller: true
+  domain: tekton.dev
+  kind: CustomRun
+  version: v1beta1
 version: "3"
