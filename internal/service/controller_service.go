@@ -310,6 +310,9 @@ func (s *ControllerService) Status(req *pb.StatusRequest, stream pb.ControllerSe
 	}
 
 	defer func() {
+		// Make sure defer runs under a fresh context
+		// otherwise these operations would fail if the rpc context is cancelled
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		if err := s.Client.Get(
 			ctx,
 			types.NamespacedName{Name: exporter.Name, Namespace: exporter.Namespace},
@@ -330,6 +333,7 @@ func (s *ControllerService) Status(req *pb.StatusRequest, stream pb.ControllerSe
 		if err = s.Client.Status().Patch(ctx, exporter, original); err != nil {
 			logger.Error(err, "unable to update exporter status, continuing anyway", "exporter", exporter)
 		}
+		cancel()
 	}()
 
 	watcher, err := s.Client.Watch(ctx, &jumpstarterdevv1alpha1.ExporterList{}, &client.ListOptions{
