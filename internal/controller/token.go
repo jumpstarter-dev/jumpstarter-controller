@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -99,12 +101,14 @@ func VerifyObjectToken[T any, PT Object[T]](
 		return nil, err
 	}
 
+	subject := sha256.Sum256([]byte(claims.Subject))
+
 	var object T
 	if err = client.Get(
 		ctx,
 		types.NamespacedName{
 			Namespace: "jumpstarter-lab", // TODO: check namespace
-			Name:      claims.Subject,
+			Name:      hex.EncodeToString(subject[:]),
 		},
 		PT(&object),
 	); err != nil {
