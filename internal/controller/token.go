@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,41 +85,31 @@ func VerifyObjectToken[T any, PT Object[T]](
 	audience string,
 	client client.Client,
 ) (*T, error) {
-	parsed, err := jwt.ParseWithClaims(
-		token,
-		&JumpstarterClaims{},
-		KeyFunc,
-		jwt.WithIssuer(issuer),
-		jwt.WithAudience(audience),
-		jwt.WithIssuedAt(),
-		jwt.WithValidMethods([]string{
-			jwt.SigningMethodHS256.Name,
-			jwt.SigningMethodHS384.Name,
-			jwt.SigningMethodHS512.Name,
-		}),
-	)
+	provider, err := oidc.NewProvider(ctx, "https://example.com") // TODO: cache provider
 	if err != nil {
 		return nil, err
-	} else if claims, ok := parsed.Claims.(*JumpstarterClaims); ok {
-		var object T
-		err = client.Get(
-			ctx,
-			types.NamespacedName{
-				Namespace: claims.Namespace,
-				Name:      claims.Name,
-			},
-			PT(&object),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if PT(&object).GetUID() != claims.UID {
-			return nil, fmt.Errorf("VerifyObjectToken: UID mismatch")
-		}
-
-		return &object, nil
-	} else {
-		return nil, fmt.Errorf("%T is not a JumpstarterClaims", parsed.Claims)
 	}
+
+	verifier := provider.Verifier(&oidc.Config{
+		ClientID: "jumpstarter",
+	})
+
+	claims, err := verifier.Verify(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	var object T
+	if err = client.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: "jumpstarter-lab", // TODO: check namespace
+			Name:      claims.Subject,
+		},
+		PT(&object),
+	); err != nil {
+		return nil, err
+	}
+
+	return &object, nil
 }
