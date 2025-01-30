@@ -1,8 +1,0 @@
-apiVersion: jumpstarter.dev/v1alpha1
-kind: Client
-metadata:
-  labels:
-    app.kubernetes.io/name: jumpstarter-router
-    app.kubernetes.io/managed-by: kustomize
-  name: client-sample
-spec: {}

@@ -31,23 +31,6 @@
       {{ end }}
     </tbody>
   </table>
-  <h1>Clients</h1>
-  <table class="table">
-    <thead>
-      <tr>
-        <th scope="col">Namespace</th>
-        <th scope="col">Name</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range .Clients }}
-      <tr>
-        <td>{{ .Namespace }}</td>
-        <td>{{ .Name }}</td>
-      </tr>
-      {{ end }}
-    </tbody>
-  </table>
   <h1>Leases</h1>
   <table class="table">
     <thead>

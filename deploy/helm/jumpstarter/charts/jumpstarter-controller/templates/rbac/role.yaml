@@ -17,7 +17,6 @@ rules:
 - apiGroups:
   - jumpstarter.dev
   resources:
-  - clients
   - exporters
   - leases
   verbs:
@@ -31,7 +30,6 @@ rules:
 - apiGroups:
   - jumpstarter.dev
   resources:
-  - clients/finalizers
   - exporters/finalizers
   - leases/finalizers
   verbs:
@@ -39,7 +37,6 @@ rules:
 - apiGroups:
   - jumpstarter.dev
   resources:
-  - clients/status
   - exporters/status
   - leases/status
   verbs:

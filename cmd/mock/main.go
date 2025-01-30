@@ -61,31 +61,8 @@ func main() {
 
 	log.Println("exporter token:", exporterToken)
 
-	client := jumpstarterdevv1alpha1.Client{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "identity-sample",
-			Namespace: namespace,
-		},
-		Status: jumpstarterdevv1alpha1.ClientStatus{
-			Credential: &corev1.LocalObjectReference{
-				Name: "identity-sample-token",
-			},
-		},
-	}
-
-	clientToken, err := controller.SignObjectToken(
-		"https://jumpstarter.dev/controller",
-		[]string{"https://jumpstarter.dev/controller"},
-		&client,
-		scheme,
-	)
-	utilruntime.Must(err)
-
-	log.Println("client token:", clientToken)
-
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&exporter,
-		&client,
 	).WithStatusSubresource(&exporter).Build()
 
 	pb.RegisterControllerServiceServer(server, &service.ControllerService{

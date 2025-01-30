@@ -50,12 +50,6 @@ func (s *DashboardService) Start(ctx context.Context) error {
 			return
 		}
 
-		var clients jumpstarterdevv1alpha1.ClientList
-		if err := s.List(ctx, &clients); err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
 		var leases jumpstarterdevv1alpha1.LeaseList
 		if err := s.List(ctx, &leases); err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
@@ -64,7 +58,6 @@ func (s *DashboardService) Start(ctx context.Context) error {
 
 		c.HTML(http.StatusOK, "index.html", map[string]interface{}{
 			"Exporters": exporters.Items,
-			"Clients":   clients.Items,
 			"Leases":    leases.Items,
 		})
 	})

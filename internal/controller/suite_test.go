@@ -89,8 +89,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	createTestClients(context.Background())
-
 })
 
 var _ = AfterSuite(func() {
@@ -98,17 +96,6 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
-
-var testClient = &jumpstarterdevv1alpha1.Client{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "client",
-		Namespace: "default",
-	},
-}
-
-func createTestClients(ctx context.Context) {
-	Expect(k8sClient.Create(ctx, testClient)).To(Succeed())
-}
 
 func createExporters(ctx context.Context, exporters ...*jumpstarterdevv1alpha1.Exporter) {
 	for _, exporter := range exporters {

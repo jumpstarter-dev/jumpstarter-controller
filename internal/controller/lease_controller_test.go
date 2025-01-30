@@ -37,7 +37,7 @@ var leaseDutA2Sec = &jumpstarterdevv1alpha1.Lease{
 	},
 	Spec: jumpstarterdevv1alpha1.LeaseSpec{
 		ClientRef: corev1.LocalObjectReference{
-			Name: testClient.Name,
+			Name: "test-client",
 		},
 		Selector: metav1.LabelSelector{
 			MatchLabels: map[string]string{
