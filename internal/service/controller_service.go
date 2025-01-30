@@ -61,22 +61,24 @@ type ControllerService struct {
 	listenQueues sync.Map
 }
 
-func (s *ControllerService) authenticateClient(ctx context.Context) (string, *controller.Claims, error) {
+func (s *ControllerService) authenticateClient(ctx context.Context) (*controller.Claims, error) {
 	token, err := BearerTokenFromContext(ctx)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	claims, err := controller.VerifyToken(ctx, token)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	if !slices.Contains(claims.ResourceAccess.Jumpstarter.Roles, "developer") { // FIXME: customizable RBAC
-		return "", nil, fmt.Errorf("user not part of developer group")
+		return nil, fmt.Errorf("user not part of developer group")
 	}
 
-	return "jumpstarter-lab", claims, nil // FIXME: extract namespace from custom claim
+	// FIXME: also check namespace
+
+	return claims, nil
 }
 
 func (s *ControllerService) authenticateExporter(ctx context.Context) (*jumpstarterdevv1alpha1.Exporter, error) {
@@ -414,14 +416,14 @@ func (s *ControllerService) Status(req *pb.StatusRequest, stream pb.ControllerSe
 func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.DialResponse, error) {
 	logger := log.FromContext(ctx)
 
-	namespace, claims, err := s.authenticateClient(ctx)
+	claims, err := s.authenticateClient(ctx)
 	if err != nil {
 		logger.Error(err, "unable to authenticate client")
 		return nil, err
 	}
 
 	logger = logger.WithValues("client", types.NamespacedName{
-		Namespace: namespace,
+		Namespace: req.Namespace,
 		Name:      claims.Name,
 	})
 
@@ -433,14 +435,14 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 	}
 
 	logger = logger.WithValues("lease", types.NamespacedName{
-		Namespace: namespace,
+		Namespace: req.Namespace,
 		Name:      leaseName,
 	})
 
 	var lease jumpstarterdevv1alpha1.Lease
 	if err := s.Client.Get(
 		ctx,
-		types.NamespacedName{Namespace: namespace, Name: leaseName},
+		types.NamespacedName{Namespace: req.Namespace, Name: leaseName},
 		&lease,
 	); err != nil {
 		logger.Error(err, "unable to get lease")
@@ -496,14 +498,14 @@ func (s *ControllerService) GetLease(
 	ctx context.Context,
 	req *pb.GetLeaseRequest,
 ) (*pb.GetLeaseResponse, error) {
-	namespace, claims, err := s.authenticateClient(ctx)
+	claims, err := s.authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var lease jumpstarterdevv1alpha1.Lease
 	if err := s.Client.Get(ctx, types.NamespacedName{
-		Namespace: namespace,
+		Namespace: req.Namespace,
 		Name:      req.Name,
 	}, &lease); err != nil {
 		return nil, err
@@ -535,7 +537,7 @@ func (s *ControllerService) GetLease(
 		var exporter jumpstarterdevv1alpha1.Exporter
 		if err := s.Client.Get(
 			ctx,
-			types.NamespacedName{Namespace: namespace, Name: lease.Status.ExporterRef.Name},
+			types.NamespacedName{Namespace: req.Namespace, Name: lease.Status.ExporterRef.Name},
 			&exporter,
 		); err != nil {
 			return nil, fmt.Errorf("GetLease fetch exporter uuid failed")
@@ -572,7 +574,7 @@ func (s *ControllerService) RequestLease(
 	ctx context.Context,
 	req *pb.RequestLeaseRequest,
 ) (*pb.RequestLeaseResponse, error) {
-	namespace, claims, err := s.authenticateClient(ctx)
+	claims, err := s.authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +594,7 @@ func (s *ControllerService) RequestLease(
 
 	var lease jumpstarterdevv1alpha1.Lease = jumpstarterdevv1alpha1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
+			Namespace: req.Namespace,
 			Name:      string(uuid.NewUUID()), // TODO: human readable name
 		},
 		Spec: jumpstarterdevv1alpha1.LeaseSpec{
@@ -619,14 +621,14 @@ func (s *ControllerService) ReleaseLease(
 	ctx context.Context,
 	req *pb.ReleaseLeaseRequest,
 ) (*pb.ReleaseLeaseResponse, error) {
-	namespace, claims, err := s.authenticateClient(ctx)
+	claims, err := s.authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var lease jumpstarterdevv1alpha1.Lease
 	if err := s.Client.Get(ctx, types.NamespacedName{
-		Namespace: namespace,
+		Namespace: req.Namespace,
 		Name:      req.Name,
 	}, &lease); err != nil {
 		return nil, err
@@ -650,7 +652,7 @@ func (s *ControllerService) ListLeases(
 	ctx context.Context,
 	req *pb.ListLeasesRequest,
 ) (*pb.ListLeasesResponse, error) {
-	namespace, claims, err := s.authenticateClient(ctx)
+	claims, err := s.authenticateClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +661,7 @@ func (s *ControllerService) ListLeases(
 	if err := s.Client.List(
 		ctx,
 		&leases,
-		client.InNamespace(namespace),
+		client.InNamespace(req.Namespace),
 		controller.MatchingActiveLeases(),
 	); err != nil {
 		return nil, err
