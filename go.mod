@@ -3,7 +3,9 @@ module github.com/jumpstarter-dev/jumpstarter-controller
 go 1.22.3
 
 require (
+	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-logr/logr v1.4.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.1
@@ -35,7 +37,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect

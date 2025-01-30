@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"os"
 	"time"
 
@@ -75,6 +76,35 @@ func SignObjectToken(
 type Object[T any] interface {
 	client.Object
 	*T
+}
+
+type Claims struct {
+	Subject string   `json:"sub"`
+	Name    string   `json:"name"`
+	Groups  []string `json:"groups"`
+}
+
+func VerifyToken(ctx context.Context, token string) (*Claims, error) {
+	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
+	if err != nil {
+		return nil, err
+	}
+
+	verifier := provider.Verifier(&oidc.Config{
+		ClientID: "jumpstarter", // FIXME: parameterize client_id
+	})
+
+	verified, err := verifier.Verify(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	var claims Claims // FIXME: custom claims
+	if err := verified.Claims(&claims); err != nil {
+		return nil, err
+	}
+
+	return &claims, nil
 }
 
 func VerifyObjectToken[T any, PT Object[T]](
