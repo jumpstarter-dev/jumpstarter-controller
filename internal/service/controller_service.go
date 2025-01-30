@@ -72,7 +72,7 @@ func (s *ControllerService) authenticateClient(ctx context.Context) (string, *co
 		return "", nil, err
 	}
 
-	if !slices.Contains(claims.Groups, "developer") { // FIXME: customizable RBAC
+	if !slices.Contains(claims.ResourceAccess.Jumpstarter.Roles, "developer") { // FIXME: customizable RBAC
 		return "", nil, fmt.Errorf("user not part of developer group")
 	}
 

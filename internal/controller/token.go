@@ -78,14 +78,22 @@ type Object[T any] interface {
 	*T
 }
 
+type ResourceAccessJumpstarter struct {
+	Roles []string `json:"roles"`
+}
+
+type ResourceAccess struct {
+	Jumpstarter ResourceAccessJumpstarter `json:"jumpstarter"`
+}
+
 type Claims struct {
-	Subject string   `json:"sub"`
-	Name    string   `json:"name"`
-	Groups  []string `json:"groups"`
+	Subject        string         `json:"sub"`
+	Name           string         `json:"preferred_username"`
+	ResourceAccess ResourceAccess `json:"resource_access"`
 }
 
 func VerifyToken(ctx context.Context, token string) (*Claims, error) {
-	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
+	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:8080/realms/master") // FIXME: cache provider instance
 	if err != nil {
 		return nil, err
 	}
