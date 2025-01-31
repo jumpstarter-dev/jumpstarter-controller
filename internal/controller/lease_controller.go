@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -26,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -267,7 +269,49 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 			return false
 		})
 
-		if len(availableExporters) == 0 {
+		var approvedExporters []jumpstarterdevv1alpha1.Exporter
+
+		var policies jumpstarterdevv1alpha1.ExporterAccessPolicyList
+		if err := r.List(ctx, &policies,
+			client.InNamespace(lease.Namespace),
+		); err != nil {
+			return fmt.Errorf("reconcileStatusExporterRef: failed to list exporter access policies: %w", err)
+		}
+
+		var jclient jumpstarterdevv1alpha1.Client
+		if err := r.Get(ctx, types.NamespacedName{
+			Namespace: lease.Namespace,
+			Name:      lease.Spec.ClientRef.Name,
+		}, &jclient); err != nil {
+			return fmt.Errorf("reconcileStatusExporterRef: failed to get client: %w", err)
+		}
+
+		for _, exporter := range availableExporters {
+			for _, policy := range policies.Items {
+				exporterSelector, err := metav1.LabelSelectorAsSelector(&policy.Spec.ExporterSelector)
+				if err != nil {
+					return fmt.Errorf("reconcileStatusExporterRef: failed to convert exporter selector: %w", err)
+				}
+				if exporterSelector.Matches(labels.Set(exporter.Labels)) {
+					for _, p := range policy.Spec.Policies {
+						for _, from := range p.From {
+							clientSelector, err := metav1.LabelSelectorAsSelector(&from.ClientSelector)
+							if err != nil {
+								return fmt.Errorf("reconcileStatusExporterRef: failed to convert client selector: %w", err)
+							}
+							if clientSelector.Matches(labels.Set(jclient.Labels)) {
+								if lease.Spec.Duration.Duration > p.MaximumDuration.Duration {
+									continue
+								}
+								approvedExporters = append(approvedExporters, exporter)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if len(approvedExporters) == 0 {
 			meta.SetStatusCondition(&lease.Status.Conditions, metav1.Condition{
 				Type:               string(jumpstarterdevv1alpha1.LeaseConditionTypePending),
 				Status:             metav1.ConditionTrue,
@@ -279,12 +323,12 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 			})
 			result.RequeueAfter = time.Second
 			return nil
-		} else {
-			lease.Status.ExporterRef = &corev1.LocalObjectReference{
-				Name: availableExporters[0].Name,
-			}
-			return nil
 		}
+
+		lease.Status.ExporterRef = &corev1.LocalObjectReference{
+			Name: approvedExporters[0].Name,
+		}
+		return nil
 	}
 
 	return nil
