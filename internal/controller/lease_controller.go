@@ -268,7 +268,10 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 			return false
 		})
 
-		var approvedExporters []jumpstarterdevv1alpha1.Exporter
+		var approvedExporters []struct {
+			Exporter jumpstarterdevv1alpha1.Exporter
+			Policy   jumpstarterdevv1alpha1.Policy
+		}
 
 		var policies jumpstarterdevv1alpha1.ExporterAccessPolicyList
 		if err := r.List(ctx, &policies,
@@ -304,7 +307,13 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 										continue
 									}
 								}
-								approvedExporters = append(approvedExporters, exporter)
+								approvedExporters = append(approvedExporters, struct {
+									Exporter jumpstarterdevv1alpha1.Exporter
+									Policy   jumpstarterdevv1alpha1.Policy
+								}{
+									Exporter: exporter,
+									Policy:   p,
+								})
 							}
 						}
 					}
@@ -326,8 +335,10 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 			return nil
 		}
 
+		selected := approvedExporters[0]
+		lease.Status.Priority = selected.Policy.Priority
 		lease.Status.ExporterRef = &corev1.LocalObjectReference{
-			Name: approvedExporters[0].Name,
+			Name: selected.Exporter.Name,
 		}
 		return nil
 	}

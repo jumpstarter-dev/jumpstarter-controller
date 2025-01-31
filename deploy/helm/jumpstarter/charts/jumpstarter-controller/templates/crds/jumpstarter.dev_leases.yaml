@@ -207,6 +207,8 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              priority:
+                type: integer
             required:
             - ended
             type: object
