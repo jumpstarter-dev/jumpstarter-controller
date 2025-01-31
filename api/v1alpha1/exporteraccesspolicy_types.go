@@ -23,13 +23,21 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type From struct {
+	ClientSelector metav1.LabelSelector `json:"clientSelector,omitempty"`
+}
+
+type Policy struct {
+	Priority        int             `json:"priority,omitempty"`
+	From            []From          `json:"from,omitempty"`
+	MaximumDuration metav1.Duration `json:"maximumDuration,omitempty"`
+	SpotAccess      bool            `json:"spotAccess,omitempty"`
+}
+
 // ExporterAccessPolicySpec defines the desired state of ExporterAccessPolicy.
 type ExporterAccessPolicySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of ExporterAccessPolicy. Edit exporteraccesspolicy_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	ExporterSelector metav1.LabelSelector `json:"exporterSelector,omitempty"`
+	Policies         []Policy             `json:"policies,omitempty"`
 }
 
 // ExporterAccessPolicyStatus defines the observed state of ExporterAccessPolicy.
