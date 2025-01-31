@@ -6,4 +6,4 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: client-sample
 spec:
-  oidcSubject: CgRkZXYxEgRsZGFw
+  oidcSubject: CiQ3M2JjYTBiOS05YmU2LTRlNzMtYThmYi0zNDdjMmFjMjMyNTUSBWxvY2Fs
