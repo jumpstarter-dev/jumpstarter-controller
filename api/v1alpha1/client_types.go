@@ -28,6 +28,7 @@ import (
 type ClientSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	OIDCSubject *string `json:"oidcSubject,omitempty"`
 }
 
 // ClientStatus defines the observed state of Identity
