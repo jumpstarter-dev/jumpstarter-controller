@@ -209,6 +209,8 @@ spec:
                 x-kubernetes-map-type: atomic
               priority:
                 type: integer
+              spotAccess:
+                type: boolean
             required:
             - ended
             type: object

@@ -337,6 +337,7 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 
 		selected := approvedExporters[0]
 		lease.Status.Priority = selected.Policy.Priority
+		lease.Status.SpotAccess = selected.Policy.SpotAccess
 		lease.Status.ExporterRef = &corev1.LocalObjectReference{
 			Name: selected.Exporter.Name,
 		}

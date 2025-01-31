@@ -42,6 +42,7 @@ type LeaseStatus struct {
 	ExporterRef *corev1.LocalObjectReference `json:"exporterRef,omitempty"`
 	Ended       bool                         `json:"ended"`
 	Priority    int                          `json:"priority,omitempty"`
+	SpotAccess  bool                         `json:"spotAccess,omitempty"`
 	Conditions  []metav1.Condition           `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
