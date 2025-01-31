@@ -28,6 +28,7 @@ import (
 type ExporterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	OIDCSubject *string `json:"oidcSubject,omitempty"`
 }
 
 // ExporterStatus defines the observed state of Exporter
