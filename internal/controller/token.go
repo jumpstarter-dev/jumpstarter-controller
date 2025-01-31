@@ -86,7 +86,7 @@ type OIDCClaims struct {
 }
 
 func VerifyOIDCToken(ctx context.Context, token string) (*OIDCClaims, error) {
-	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
+	provider, err := oidc.NewProvider(ctx, "http://host.docker.internal:5556/dex") // FIXME: cache provider instance
 	if err != nil {
 		return nil, err
 	}
