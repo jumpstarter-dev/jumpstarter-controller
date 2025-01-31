@@ -5,4 +5,5 @@ metadata:
     app.kubernetes.io/name: jumpstarter-router
     app.kubernetes.io/managed-by: kustomize
   name: client-sample
-spec: {}
+spec:
+  oidcSubject: CgRkZXYxEgRsZGFw
