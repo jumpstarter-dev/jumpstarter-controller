@@ -131,6 +131,30 @@ func VerifyClientObjectToken(
 	)
 }
 
+func VerifyExporterObjectToken(
+	ctx context.Context,
+	token string,
+	issuer string,
+	audience string,
+	kclient client.Client,
+) (*jumpstarterdevv1alpha1.Exporter, error) {
+	// Try verify token as an OIDC token, ignore errors
+	if subject, err := VerifyOIDCToken(ctx, token); err == nil {
+		var clients jumpstarterdevv1alpha1.ExporterList
+		if err = kclient.List(ctx, &clients); err != nil {
+			return nil, err
+		}
+		for _, c := range clients.Items {
+			if c.Spec.OIDCSubject != nil && *c.Spec.OIDCSubject == subject {
+				return &c, nil
+			}
+		}
+	}
+	return VerifyObjectToken[jumpstarterdevv1alpha1.Exporter](
+		ctx, token, issuer, audience, kclient,
+	)
+}
+
 func VerifyObjectToken[T any, PT Object[T]](
 	ctx context.Context,
 	token string,

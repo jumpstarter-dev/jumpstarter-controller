@@ -81,7 +81,7 @@ func (s *ControllerService) authenticateExporter(ctx context.Context) (*jumpstar
 		return nil, err
 	}
 
-	return controller.VerifyObjectToken[jumpstarterdevv1alpha1.Exporter](
+	return controller.VerifyExporterObjectToken(
 		ctx,
 		token,
 		"https://jumpstarter.dev/controller",
