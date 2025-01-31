@@ -1,4 +1,4 @@
-issuer: http://host.docker.internal:5556/dex
+issuer: http://10.239.206.8:5556/dex
 storage:
   type: sqlite3
   config:

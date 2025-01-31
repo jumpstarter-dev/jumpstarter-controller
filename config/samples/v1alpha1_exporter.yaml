@@ -6,5 +6,5 @@ metadata:
     dut: fancy-hardware
   name: exporter-sample
 spec:
-  oidcIssuer: http://host.docker.internal:5556/dex
+  oidcIssuer: http://10.239.206.8:5556/dex
   oidcSubject: CiRhNGNiNGRlMi00NDY3LTRlNWMtYTQyYS0zM2JlODc4MzY0OWQSBWxvY2Fs
