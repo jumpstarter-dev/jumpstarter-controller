@@ -3,9 +3,11 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"os"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 
 	"github.com/golang-jwt/jwt/v5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,6 +107,30 @@ func VerifyOIDCToken(ctx context.Context, token string) (string, error) {
 	return claims.Subject, nil
 }
 
+func VerifyClientObjectToken(
+	ctx context.Context,
+	token string,
+	issuer string,
+	audience string,
+	kclient client.Client,
+) (*jumpstarterdevv1alpha1.Client, error) {
+	// Try verify token as an OIDC token, ignore errors
+	if subject, err := VerifyOIDCToken(ctx, token); err == nil {
+		var clients jumpstarterdevv1alpha1.ClientList
+		if err = kclient.List(ctx, &clients); err != nil {
+			return nil, err
+		}
+		for _, c := range clients.Items {
+			if c.Spec.OIDCSubject != nil && *c.Spec.OIDCSubject == subject {
+				return &c, nil
+			}
+		}
+	}
+	return VerifyObjectToken[jumpstarterdevv1alpha1.Client](
+		ctx, token, issuer, audience, kclient,
+	)
+}
+
 func VerifyObjectToken[T any, PT Object[T]](
 	ctx context.Context,
 	token string,
@@ -112,6 +138,7 @@ func VerifyObjectToken[T any, PT Object[T]](
 	audience string,
 	client client.Client,
 ) (*T, error) {
+
 	parsed, err := jwt.ParseWithClaims(
 		token,
 		&JumpstarterClaims{},

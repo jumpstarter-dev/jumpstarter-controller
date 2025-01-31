@@ -66,7 +66,7 @@ func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarte
 		return nil, err
 	}
 
-	return controller.VerifyObjectToken[jumpstarterdevv1alpha1.Client](
+	return controller.VerifyClientObjectToken(
 		ctx,
 		token,
 		"https://jumpstarter.dev/controller",
