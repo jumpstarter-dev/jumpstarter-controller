@@ -39,10 +39,12 @@ spec:
           spec:
             description: ClientSpec defines the desired state of Identity
             properties:
-              oidcSubject:
+              oidcIssuer:
                 description: |-
                   INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                   Important: Run "make" to regenerate code after modifying this file
+                type: string
+              oidcSubject:
                 type: string
             type: object
           status:
