@@ -299,8 +299,10 @@ func (r *LeaseReconciler) reconcileStatusExporterRef(
 								return fmt.Errorf("reconcileStatusExporterRef: failed to convert client selector: %w", err)
 							}
 							if clientSelector.Matches(labels.Set(jclient.Labels)) {
-								if lease.Spec.Duration.Duration > p.MaximumDuration.Duration {
-									continue
+								if p.MaximumDuration != nil {
+									if lease.Spec.Duration.Duration > p.MaximumDuration.Duration {
+										continue
+									}
 								}
 								approvedExporters = append(approvedExporters, exporter)
 							}

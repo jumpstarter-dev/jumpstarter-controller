@@ -28,10 +28,10 @@ type From struct {
 }
 
 type Policy struct {
-	Priority        int             `json:"priority,omitempty"`
-	From            []From          `json:"from,omitempty"`
-	MaximumDuration metav1.Duration `json:"maximumDuration,omitempty"`
-	SpotAccess      bool            `json:"spotAccess,omitempty"`
+	Priority        int              `json:"priority,omitempty"`
+	From            []From           `json:"from,omitempty"`
+	MaximumDuration *metav1.Duration `json:"maximumDuration,omitempty"`
+	SpotAccess      bool             `json:"spotAccess,omitempty"`
 }
 
 // ExporterAccessPolicySpec defines the desired state of ExporterAccessPolicy.
