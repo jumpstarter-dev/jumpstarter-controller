@@ -78,16 +78,14 @@ type Object[T any] interface {
 	*T
 }
 
-type Claims struct {
-	Subject string   `json:"sub"`
-	Name    string   `json:"name"`
-	Groups  []string `json:"groups"`
+type OIDCClaims struct {
+	Subject string `json:"sub"`
 }
 
-func VerifyToken(ctx context.Context, token string) (*Claims, error) {
+func VerifyOIDCToken(ctx context.Context, token string) (string, error) {
 	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	verifier := provider.Verifier(&oidc.Config{
@@ -96,15 +94,15 @@ func VerifyToken(ctx context.Context, token string) (*Claims, error) {
 
 	verified, err := verifier.Verify(ctx, token)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var claims Claims // FIXME: custom claims
+	var claims OIDCClaims // FIXME: custom claims
 	if err := verified.Claims(&claims); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &claims, nil
+	return claims.Subject, nil
 }
 
 func VerifyObjectToken[T any, PT Object[T]](
