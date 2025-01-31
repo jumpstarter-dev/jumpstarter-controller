@@ -81,13 +81,14 @@ type Object[T any] interface {
 }
 
 type OIDCClaims struct {
+	Issuer  string `json:"iss"`
 	Subject string `json:"sub"`
 }
 
-func VerifyOIDCToken(ctx context.Context, token string) (string, error) {
+func VerifyOIDCToken(ctx context.Context, token string) (*OIDCClaims, error) {
 	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	verifier := provider.Verifier(&oidc.Config{
@@ -96,15 +97,15 @@ func VerifyOIDCToken(ctx context.Context, token string) (string, error) {
 
 	verified, err := verifier.Verify(ctx, token)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var claims OIDCClaims // FIXME: custom claims
 	if err := verified.Claims(&claims); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return claims.Subject, nil
+	return &claims, nil
 }
 
 func VerifyClientObjectToken(
@@ -115,13 +116,17 @@ func VerifyClientObjectToken(
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Client, error) {
 	// Try verify token as an OIDC token, ignore errors
-	if subject, err := VerifyOIDCToken(ctx, token); err == nil {
+	if claims, err := VerifyOIDCToken(ctx, token); err == nil {
 		var clients jumpstarterdevv1alpha1.ClientList
 		if err = kclient.List(ctx, &clients); err != nil {
 			return nil, err
 		}
 		for _, c := range clients.Items {
-			if c.Spec.OIDCSubject != nil && *c.Spec.OIDCSubject == subject {
+			if true &&
+				c.Spec.OIDCIssuer != nil &&
+				c.Spec.OIDCSubject != nil &&
+				*c.Spec.OIDCIssuer == claims.Issuer &&
+				*c.Spec.OIDCSubject == claims.Subject {
 				return &c, nil
 			}
 		}
@@ -139,13 +144,17 @@ func VerifyExporterObjectToken(
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Exporter, error) {
 	// Try verify token as an OIDC token, ignore errors
-	if subject, err := VerifyOIDCToken(ctx, token); err == nil {
+	if claims, err := VerifyOIDCToken(ctx, token); err == nil {
 		var clients jumpstarterdevv1alpha1.ExporterList
 		if err = kclient.List(ctx, &clients); err != nil {
 			return nil, err
 		}
 		for _, c := range clients.Items {
-			if c.Spec.OIDCSubject != nil && *c.Spec.OIDCSubject == subject {
+			if true &&
+				c.Spec.OIDCIssuer != nil &&
+				c.Spec.OIDCSubject != nil &&
+				*c.Spec.OIDCIssuer == claims.Issuer &&
+				*c.Spec.OIDCSubject == claims.Subject {
 				return &c, nil
 			}
 		}
