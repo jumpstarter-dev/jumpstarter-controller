@@ -8,7 +8,7 @@ metadata:
 spec:
   exporterSelector:
     matchLabels:
-      dut-purpose: development
+      dut: fancy-hardware
   policies:
     - priority: 20 # Administrators come first, highest priority
       from:
@@ -16,7 +16,7 @@ spec:
             matchLabels:
               client-type: administrator
     - priority: 10 # Developers come next, maximum 2days
-      maximumDuration: 2d
+      maximumDuration: 24h
       from:
         - clientSelector:
             matchLabels:

@@ -4,6 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: jumpstarter-router
     app.kubernetes.io/managed-by: kustomize
+    client-type: developer
   name: client-sample
 spec:
   oidcIssuer: http://10.239.206.8:5556/dex
