@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,6 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apiserver/pkg/apis/apiserver"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -85,27 +88,55 @@ type OIDCClaims struct {
 	Subject string `json:"sub"`
 }
 
-func VerifyOIDCToken(ctx context.Context, token string) (*OIDCClaims, error) {
-	provider, err := oidc.NewProvider(ctx, "http://10.239.206.8:5556/dex") // FIXME: cache provider instance
+var auth, _ = NewJWTAuthenticator(
+	context.Background(),
+	OIDCConfig{
+		JWT: []apiserver.JWTAuthenticator{{
+			Issuer: apiserver.Issuer{
+				URL: "https://10.239.206.8:5556/dex",
+				CertificateAuthority: `-----BEGIN CERTIFICATE-----
+MIIB/DCCAYKgAwIBAgIIcpC2uS+SjEIwCgYIKoZIzj0EAwMwIDEeMBwGA1UEAxMV
+bWluaWNhIHJvb3QgY2EgNzI5MGI2MCAXDTI1MDIwMzE5MzMyNVoYDzIxMjUwMjAz
+MTkzMzI1WjAgMR4wHAYDVQQDExVtaW5pY2Egcm9vdCBjYSA3MjkwYjYwdjAQBgcq
+hkjOPQIBBgUrgQQAIgNiAAQzezKJ4My35HPeoJvvzTjhS2uJMBYrYfrs5csxZjiy
+q8ORrHM539XhWlA6sVZODhzcF2KL4mC9xKz/yIrsws+LKsIWNHGGmIPEKFYnHBGw
+VBGeARvhpzZP/9frJXAN/8ejgYYwgYMwDgYDVR0PAQH/BAQDAgKEMB0GA1UdJQQW
+MBQGCCsGAQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1Ud
+DgQWBBSZRBCUuP3ta2xsfjnWIjvgvz4fojAfBgNVHSMEGDAWgBSZRBCUuP3ta2xs
+fjnWIjvgvz4fojAKBggqhkjOPQQDAwNoADBlAjADql5Ks5wh181iUa1ZBnx4XOVe
+l0l7I+mwlwJSPmkZHxruWZTx7gQU4tfDCr+UuzUCMQC2aDXRb17cphipK4gzbExv
+EDLExjhHAqMPrKDmT0jHIi7Bbos38/1tyZ/IoKjLnv0=
+-----END CERTIFICATE-----
+`,
+				Audiences:           []string{"jumpstarter"},
+				AudienceMatchPolicy: "MatchAny",
+			},
+			ClaimValidationRules: []apiserver.ClaimValidationRule{},
+			ClaimMappings: apiserver.ClaimMappings{
+				Username: apiserver.PrefixedClaimOrExpression{
+					Claim:  "sub",
+					Prefix: ptr.To(""),
+				},
+			},
+			UserValidationRules: []apiserver.UserValidationRule{},
+		}},
+	},
+	[]string{"jumpstarter"},
+	oidc.AllValidSigningAlgorithms(),
+	[]string{},
+)
+
+func VerifyOIDCToken(ctx context.Context, token string) (user.Info, error) {
+	resp, ok, err := auth.AuthenticateToken(ctx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	verifier := provider.Verifier(&oidc.Config{
-		ClientID: "jumpstarter", // FIXME: parameterize client_id
-	})
-
-	verified, err := verifier.Verify(ctx, token)
-	if err != nil {
-		return nil, err
+	if !ok {
+		return nil, fmt.Errorf("failed to authenticate token")
 	}
 
-	var claims OIDCClaims // FIXME: custom claims
-	if err := verified.Claims(&claims); err != nil {
-		return nil, err
-	}
-
-	return &claims, nil
+	return resp.User, nil
 }
 
 func VerifyClientObjectToken(
@@ -116,17 +147,15 @@ func VerifyClientObjectToken(
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Client, error) {
 	// Try verify token as an OIDC token, ignore errors
-	if claims, err := VerifyOIDCToken(ctx, token); err == nil {
+	if userInfo, err := VerifyOIDCToken(ctx, token); err == nil {
 		var clients jumpstarterdevv1alpha1.ClientList
 		if err = kclient.List(ctx, &clients); err != nil {
 			return nil, err
 		}
 		for _, c := range clients.Items {
 			if true &&
-				c.Spec.OIDCIssuer != nil &&
 				c.Spec.OIDCSubject != nil &&
-				*c.Spec.OIDCIssuer == claims.Issuer &&
-				*c.Spec.OIDCSubject == claims.Subject {
+				*c.Spec.OIDCSubject == userInfo.GetName() {
 				return &c, nil
 			}
 		}
@@ -144,17 +173,15 @@ func VerifyExporterObjectToken(
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Exporter, error) {
 	// Try verify token as an OIDC token, ignore errors
-	if claims, err := VerifyOIDCToken(ctx, token); err == nil {
+	if userInfo, err := VerifyOIDCToken(ctx, token); err == nil {
 		var clients jumpstarterdevv1alpha1.ExporterList
 		if err = kclient.List(ctx, &clients); err != nil {
 			return nil, err
 		}
 		for _, c := range clients.Items {
 			if true &&
-				c.Spec.OIDCIssuer != nil &&
 				c.Spec.OIDCSubject != nil &&
-				*c.Spec.OIDCIssuer == claims.Issuer &&
-				*c.Spec.OIDCSubject == claims.Subject {
+				*c.Spec.OIDCSubject == userInfo.GetName() {
 				return &c, nil
 			}
 		}
