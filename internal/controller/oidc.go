@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
@@ -11,14 +13,11 @@ import (
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
 )
 
-type OIDCConfig struct {
-	JWT []apiserver.JWTAuthenticator
-}
-
 // Reference: https://github.com/kubernetes/kubernetes/blob/v1.32.1/pkg/kubeapiserver/authenticator/config.go#L244
 func NewJWTAuthenticator(
 	ctx context.Context,
-	config OIDCConfig,
+	scheme *runtime.Scheme,
+	config jumpstarterdevv1alpha1.AuthenticationConfiguration,
 	apiAudiences authenticator.Audiences,
 	oidcSigningAlgs []string,
 	disallowedIssuers []string,
@@ -36,8 +35,12 @@ func NewJWTAuthenticator(
 				return nil, oidcCAError
 			}
 		}
+		var jwtAuthenticatorUnversioned apiserver.JWTAuthenticator
+		if err := scheme.Convert(&jwtAuthenticator, &jwtAuthenticatorUnversioned, nil); err != nil {
+			return nil, err
+		}
 		oidcAuth, err := oidc.New(ctx, oidc.Options{
-			JWTAuthenticator:     jwtAuthenticator,
+			JWTAuthenticator:     jwtAuthenticatorUnversioned,
 			CAContentProvider:    oidcCAContent,
 			SupportedSigningAlgs: oidcSigningAlgs,
 			DisallowedIssuers:    disallowedIssuers,
