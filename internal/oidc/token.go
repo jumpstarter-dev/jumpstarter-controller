@@ -21,7 +21,7 @@ func SignInternalOIDCToken(
 	subject string,
 	key interface{},
 ) (string, error) {
-	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
+	return jwt.NewWithClaims(SigningMethod, jwt.RegisteredClaims{
 		Issuer:    Issuer,
 		Subject:   strings.TrimPrefix(subject, Prefix),
 		Audience:  []string{Audience},

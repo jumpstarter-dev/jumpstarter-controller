@@ -2,6 +2,9 @@ package oidc
 
 import (
 	"context"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/golang-jwt/jwt/v5"
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -15,9 +18,14 @@ import (
 )
 
 const (
-	Issuer   string = "https://localhost:8085"
-	Audience string = "jumpstarter"
-	Prefix   string = "internal:"
+	Issuer             string                  = "https://localhost:8085"
+	Audience           string                  = "jumpstarter"
+	Prefix             string                  = "internal:"
+	SignatureAlgorithm jose.SignatureAlgorithm = jose.ES256
+)
+
+var (
+	SigningMethod jwt.SigningMethod = jwt.SigningMethodES256
 )
 
 func LoadAuthenticationConfiguration(
