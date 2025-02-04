@@ -53,7 +53,7 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) 	rbac:roleName=manager-role crd webhook paths="./..." \
-						output:crd:artifacts:config=deploy/helm/jumpstarter/charts/jumpstarter-controller/templates/crds/ \
+						output:crd:artifacts:config=deploy/helm/jumpstarter/charts/jumpstarter-controller/crds/ \
 						output:rbac:artifacts:config=deploy/helm/jumpstarter/charts/jumpstarter-controller/templates/rbac/
 
 .PHONY: generate

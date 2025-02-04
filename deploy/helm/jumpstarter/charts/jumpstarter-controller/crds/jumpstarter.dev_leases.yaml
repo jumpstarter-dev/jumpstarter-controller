@@ -4,20 +4,30 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.3
-  name: exporters.jumpstarter.dev
+  name: leases.jumpstarter.dev
 spec:
   group: jumpstarter.dev
   names:
-    kind: Exporter
-    listKind: ExporterList
-    plural: exporters
-    singular: exporter
+    kind: Lease
+    listKind: LeaseList
+    plural: leases
+    singular: lease
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.ended
+      name: Ended
+      type: boolean
+    - jsonPath: .spec.clientRef.name
+      name: Client
+      type: string
+    - jsonPath: .status.exporterRef.name
+      name: Exporter
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Exporter is the Schema for the exporters API
+        description: Lease is the Schema for the exporters API
         properties:
           apiVersion:
             description: |-
@@ -37,15 +47,90 @@ spec:
           metadata:
             type: object
           spec:
-            description: ExporterSpec defines the desired state of Exporter
+            description: LeaseSpec defines the desired state of Lease
+            properties:
+              clientRef:
+                description: The client that is requesting the lease
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              duration:
+                description: The desired duration of the lease
+                type: string
+              release:
+                description: The release flag requests the controller to end the lease
+                  now
+                type: boolean
+              selector:
+                description: The selector for the exporter to be used
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - clientRef
+            - duration
+            - selector
             type: object
           status:
-            description: ExporterStatus defines the observed state of Exporter
+            description: LeaseStatus defines the observed state of Lease
             properties:
-              conditions:
+              beginTime:
                 description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                  If the lease has been acquired an exporter name is assigned
+                  and then and then it can be used, it will be empty while still pending
+                format: date-time
+                type: string
+              conditions:
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -101,38 +186,12 @@ spec:
                   - type
                   type: object
                 type: array
-              credential:
-                description: |-
-                  LocalObjectReference contains enough information to let you locate the
-                  referenced object inside the same namespace.
-                properties:
-                  name:
-                    default: ""
-                    description: |-
-                      Name of the referent.
-                      This field is effectively required, but due to backwards compatibility is
-                      allowed to be empty. Instances of this type with an empty value here are
-                      almost certainly wrong.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                    type: string
-                type: object
-                x-kubernetes-map-type: atomic
-              devices:
-                items:
-                  properties:
-                    labels:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    parent_uuid:
-                      type: string
-                    uuid:
-                      type: string
-                  type: object
-                type: array
-              endpoint:
+              endTime:
+                format: date-time
                 type: string
-              leaseRef:
+              ended:
+                type: boolean
+              exporterRef:
                 description: |-
                   LocalObjectReference contains enough information to let you locate the
                   referenced object inside the same namespace.
@@ -148,6 +207,12 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              priority:
+                type: integer
+              spotAccess:
+                type: boolean
+            required:
+            - ended
             type: object
         type: object
     served: true

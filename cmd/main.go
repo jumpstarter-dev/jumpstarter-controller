@@ -18,11 +18,14 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/pem"
 	"flag"
+	"net"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	apiserverinstall "k8s.io/apiserver/pkg/apis/apiserver/install"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +40,7 @@ import (
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/controller"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/service"
 	// +kubebuilder:scaffold:imports
 )
@@ -50,7 +54,9 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(jumpstarterdevv1alpha1.AddToScheme(scheme))
+
 	// +kubebuilder:scaffold:scheme
+	apiserverinstall.Install(scheme)
 }
 
 func main() {
@@ -125,9 +131,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	oidcCert, _ := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
+	oidcSigner, _ := oidc.NewSignerFromSeed([]byte(os.Getenv("CONTROLLER_KEY")))
+
 	if err = (&controller.ExporterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Signer: oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
@@ -135,6 +145,7 @@ func main() {
 	if err = (&controller.ClientReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Signer: oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Identity")
 		os.Exit(1)
@@ -157,6 +168,11 @@ func main() {
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
+		Signer: oidcSigner,
+		CertificateAuthority: string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: oidcCert.Certificate[0],
+		})),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Controller")
 		os.Exit(1)
@@ -167,6 +183,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Router")
+		os.Exit(1)
+	}
+
+	if err = (&service.OIDCService{
+		Signer: oidcSigner,
+		Cert:   oidcCert,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create service", "service", "Dashboard")
 		os.Exit(1)
 	}
 

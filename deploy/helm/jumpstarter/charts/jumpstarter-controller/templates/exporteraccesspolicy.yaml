@@ -1,0 +1,17 @@
+apiVersion: jumpstarter.dev/v1alpha1
+kind: ExporterAccessPolicy
+metadata:
+  name: default
+  namespace: default
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: jumpstarter-controller
+    {{ if .Values.global.timestamp }}
+    deployment.timestamp: {{ .Values.global.timestamp | quote }}
+    {{ end }}
+spec:
+  exporterSelector: {}
+  policies:
+    - priority: 0
+      from:
+        - clientSelector: {}
