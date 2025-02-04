@@ -209,9 +209,11 @@ func (s *ControllerService) ListExporters(
 	ctx context.Context,
 	req *pb.ListExportersRequest,
 ) (*pb.ListExportersResponse, error) {
-	// FIXME: authenticate client
-
 	logger := log.FromContext(ctx)
+
+	if _, err := s.authenticateClient(ctx); err != nil {
+		return nil, err
+	}
 
 	var exporters jumpstarterdevv1alpha1.ExporterList
 
