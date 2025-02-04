@@ -42,14 +42,11 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
-	apiserverv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -696,35 +693,11 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		return fmt.Errorf("authentication config not present in config map")
 	}
 
-	var authenticationConfiguration jumpstarterdevv1alpha1.AuthenticationConfiguration
-	if err := runtime.DecodeInto(
-		serializer.NewCodecFactory(s.Scheme, serializer.EnableStrict).
-			UniversalDecoder(jumpstarterdevv1alpha1.GroupVersion),
-		[]byte(rawAuthenticationConfig),
-		&authenticationConfiguration,
-	); err != nil {
-		return err
-	}
-
-	authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
-		Issuer: apiserverv1beta1.Issuer{
-			URL:                  Issuer,
-			CertificateAuthority: s.CertificateAuthority,
-			Audiences:            []string{"jumpstarter"},
-			AudienceMatchPolicy:  "MatchAny",
-		},
-		ClaimMappings: apiserverv1beta1.ClaimMappings{
-			Username: apiserverv1beta1.PrefixedClaimOrExpression{
-				Claim:  "sub",
-				Prefix: ptr.To("internal:"),
-			},
-		},
-	})
-
-	authenticator, err := controller.NewJWTAuthenticator(
+	authenticator, err := oidc.LoadAuthenticationConfiguration(
 		ctx,
 		s.Scheme,
-		authenticationConfiguration,
+		[]byte(rawAuthenticationConfig),
+		s.CertificateAuthority,
 	)
 	if err != nil {
 		return err

@@ -1,16 +1,65 @@
-package controller
+package oidc
 
 import (
 	"context"
-
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/apis/apiserver"
+	apiserverv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
+	"k8s.io/utils/ptr"
 )
+
+const (
+	Issuer   = "https://localhost:8085"
+	Audience = "jumpstarter"
+)
+
+func LoadAuthenticationConfiguration(
+	ctx context.Context,
+	scheme *runtime.Scheme,
+	configuration []byte,
+	certificateAuthority string,
+) (authenticator.Token, error) {
+	var authenticationConfiguration jumpstarterdevv1alpha1.AuthenticationConfiguration
+	if err := runtime.DecodeInto(
+		serializer.NewCodecFactory(scheme, serializer.EnableStrict).
+			UniversalDecoder(jumpstarterdevv1alpha1.GroupVersion),
+		configuration,
+		&authenticationConfiguration,
+	); err != nil {
+		return nil, err
+	}
+
+	authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
+		Issuer: apiserverv1beta1.Issuer{
+			URL:                  Issuer,
+			CertificateAuthority: certificateAuthority,
+			Audiences:            []string{Audience},
+		},
+		ClaimMappings: apiserverv1beta1.ClaimMappings{
+			Username: apiserverv1beta1.PrefixedClaimOrExpression{
+				Claim:  "sub",
+				Prefix: ptr.To("internal:"),
+			},
+		},
+	})
+
+	authenticator, err := NewJWTAuthenticator(
+		ctx,
+		scheme,
+		authenticationConfiguration,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return authenticator, nil
+}
 
 // Reference: https://github.com/kubernetes/kubernetes/blob/v1.32.1/pkg/kubeapiserver/authenticator/config.go#L244
 func NewJWTAuthenticator(
