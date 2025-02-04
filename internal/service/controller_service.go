@@ -75,6 +75,7 @@ func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarte
 		ctx,
 		s.authenticator,
 		token,
+		s.Signer.Prefix(),
 		s.Client,
 	)
 }
@@ -89,6 +90,7 @@ func (s *ControllerService) authenticateExporter(ctx context.Context) (*jumpstar
 		ctx,
 		s.authenticator,
 		token,
+		s.Signer.Prefix(),
 		s.Client,
 	)
 }
