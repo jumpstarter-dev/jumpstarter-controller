@@ -5,10 +5,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/tls"
 	"net"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v4"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,9 +59,9 @@ func (s *OIDCService) Start(ctx context.Context) error {
 	r := gin.Default()
 
 	r.GET("/.well-known/openid-configuration", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"issuer":   Issuer,
-			"jwks_uri": Issuer + "/jwks",
+		op.Discover(c.Writer, &oidc.DiscoveryConfiguration{
+			Issuer:  Issuer,
+			JwksURI: Issuer + "/jwks",
 		})
 	})
 
