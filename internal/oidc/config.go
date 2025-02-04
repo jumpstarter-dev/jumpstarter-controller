@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	Issuer   = "https://localhost:8085"
-	Audience = "jumpstarter"
+	Issuer   string = "https://localhost:8085"
+	Audience string = "jumpstarter"
+	Prefix   string = "internal:"
 )
 
 func LoadAuthenticationConfiguration(
@@ -44,21 +45,16 @@ func LoadAuthenticationConfiguration(
 		ClaimMappings: apiserverv1beta1.ClaimMappings{
 			Username: apiserverv1beta1.PrefixedClaimOrExpression{
 				Claim:  "sub",
-				Prefix: ptr.To("internal:"),
+				Prefix: ptr.To(Prefix),
 			},
 		},
 	})
 
-	authenticator, err := newJWTAuthenticator(
+	return newJWTAuthenticator(
 		ctx,
 		scheme,
 		authenticationConfiguration,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return authenticator, nil
 }
 
 // Reference: https://github.com/kubernetes/kubernetes/blob/v1.32.1/pkg/kubeapiserver/authenticator/config.go#L244
