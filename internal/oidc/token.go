@@ -22,9 +22,9 @@ func SignInternalOIDCToken(
 	key interface{},
 ) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
-		Issuer:    "https://localhost:8085",
-		Subject:   strings.TrimPrefix(subject, "internal:"),
-		Audience:  []string{"jumpstarter"},
+		Issuer:    Issuer,
+		Subject:   strings.TrimPrefix(subject, Prefix),
+		Audience:  []string{Audience},
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
 	}).SignedString(key)
