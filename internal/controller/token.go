@@ -2,9 +2,9 @@ package controller
 
 import (
 	"context"
-	"crypto/ed25519"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
@@ -24,17 +24,15 @@ func SignExporterToken(
 	audience []string,
 	exporter *jumpstarterdevv1alpha1.Exporter,
 	scheme *runtime.Scheme,
-	key []byte,
+	key interface{},
 ) (string, error) {
-	privateKey := ed25519.NewKeyFromSeed(key)
-
-	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
+	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
 		Issuer:    issuer,
-		Subject:   *exporter.Spec.OIDCSubject,
+		Subject:   strings.TrimPrefix(*exporter.Spec.OIDCSubject, "internal:"),
 		Audience:  audience,
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
-	}).SignedString(privateKey)
+	}).SignedString(key)
 }
 
 func SignClientToken(
@@ -42,18 +40,16 @@ func SignClientToken(
 	audience []string,
 	client *jumpstarterdevv1alpha1.Client,
 	scheme *runtime.Scheme,
-	key []byte,
+	key interface{},
 ) (string, error) {
-	privateKey := ed25519.NewKeyFromSeed(key)
-
-	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
+	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
 		Issuer:    issuer,
-		Subject:   *client.Spec.OIDCSubject,
+		Subject:   strings.TrimPrefix(*client.Spec.OIDCSubject, "internal:"),
 		Audience:  audience,
 		NotBefore: jwt.NewNumericDate(time.Now()),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ID:        string(uuid.NewUUID()),
-	}).SignedString(privateKey)
+	}).SignedString(key)
 }
 
 type OIDCClaims struct {

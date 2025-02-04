@@ -18,6 +18,7 @@ package service
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"net"
 	"os"
@@ -65,7 +66,7 @@ type ControllerService struct {
 	listenQueues         sync.Map
 	authenticator        authenticator.Token
 	CertificateAuthority string
-	Key                  []byte
+	Key                  *ecdsa.PrivateKey
 }
 
 func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarterdevv1alpha1.Client, error) {
@@ -720,12 +721,6 @@ func (s *ControllerService) Start(ctx context.Context) error {
 			Username: apiserverv1beta1.PrefixedClaimOrExpression{
 				Claim:  "sub",
 				Prefix: ptr.To("internal:"),
-			},
-			Extra: []apiserverv1beta1.ExtraMapping{
-				{
-					Key:             "jumpstarter.dev/name",
-					ValueExpression: "claims['jumpstarter.dev/name']",
-				},
 			},
 		},
 	})

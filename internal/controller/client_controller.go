@@ -36,7 +36,7 @@ import (
 type ClientReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Key    []byte
+	Key    interface{}
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=clients,verbs=get;list;watch;create;update;patch;delete

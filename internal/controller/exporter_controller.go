@@ -35,7 +35,7 @@ import (
 type ExporterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Key    []byte
+	Key    interface{}
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=exporters,verbs=get;list;watch;create;update;patch;delete

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"crypto/ed25519"
+	"crypto/ecdsa"
 	"crypto/tls"
 	"net"
 	"net/http"
@@ -23,35 +23,35 @@ const (
 type OIDCService struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Key    []byte
+	Key    *ecdsa.PrivateKey
 	Cert   *tls.Certificate
 }
 
-type ed25519Key struct {
+type ecdsaKey struct {
 	id  string
-	key ed25519.PrivateKey
+	key *ecdsa.PrivateKey
 }
 
-func (key *ed25519Key) ID() string {
+func (key *ecdsaKey) ID() string {
 	return key.id
 }
 
-func (key *ed25519Key) Algorithm() jose.SignatureAlgorithm {
-	return jose.EdDSA
+func (key *ecdsaKey) Algorithm() jose.SignatureAlgorithm {
+	return jose.ES256
 }
 
-func (key *ed25519Key) Use() string {
+func (key *ecdsaKey) Use() string {
 	return "sig"
 }
 
-func (key *ed25519Key) Key() any {
+func (key *ecdsaKey) Key() any {
 	return key.key.Public()
 }
 
 func (s *OIDCService) KeySet(context.Context) ([]op.Key, error) {
-	return []op.Key{&ed25519Key{
+	return []op.Key{&ecdsaKey{
 		id:  "default",
-		key: ed25519.NewKeyFromSeed(s.Key),
+		key: s.Key,
 	}}, nil
 }
 

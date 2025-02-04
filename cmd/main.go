@@ -17,12 +17,17 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"crypto/elliptic"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/pem"
 	"flag"
 	"net"
 	"os"
+	"strings"
+
+	"filippo.io/keygen"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -132,7 +137,8 @@ func main() {
 	}
 
 	// FIXME: load oidcKey from env
-	oidcKey, _ := hex.DecodeString("02962d72331a74087c829c4d73ff98b84d3dbbd587443b7e867630e470cef548")
+	seed, _ := hex.DecodeString(strings.Repeat("02962d72331a74087c829c4d73ff98b84d3dbbd587443b7e867630e470cef548", 10))
+	oidcKey, _ := keygen.ECDSALegacy(elliptic.P256(), bytes.NewReader(seed))
 	oidcCert, _ := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
 
 	if err = (&controller.ExporterReconciler{
