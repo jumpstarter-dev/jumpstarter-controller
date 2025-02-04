@@ -20,32 +20,28 @@ import (
 )
 
 func SignExporterToken(
-	issuer string,
-	audience []string,
 	exporter *jumpstarterdevv1alpha1.Exporter,
 	scheme *runtime.Scheme,
 	key interface{},
 ) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
-		Issuer:    issuer,
+		Issuer:    "https://localhost:8085",
 		Subject:   strings.TrimPrefix(*exporter.Spec.OIDCSubject, "internal:"),
-		Audience:  audience,
+		Audience:  []string{"jumpstarter"},
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
 	}).SignedString(key)
 }
 
 func SignClientToken(
-	issuer string,
-	audience []string,
 	client *jumpstarterdevv1alpha1.Client,
 	scheme *runtime.Scheme,
 	key interface{},
 ) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
-		Issuer:    issuer,
+		Issuer:    "https://localhost:8085",
 		Subject:   strings.TrimPrefix(*client.Spec.OIDCSubject, "internal:"),
-		Audience:  audience,
+		Audience:  []string{"jumpstarter"},
 		NotBefore: jwt.NewNumericDate(time.Now()),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ID:        string(uuid.NewUUID()),

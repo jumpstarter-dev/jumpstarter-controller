@@ -153,8 +153,6 @@ func (r *ExporterReconciler) reconcileStatusEndpoint(
 
 func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.Exporter) (*corev1.Secret, error) {
 	token, err := SignExporterToken(
-		"https://localhost:8085",
-		[]string{"jumpstarter"},
 		exporter,
 		r.Scheme,
 		r.Key,

@@ -113,8 +113,6 @@ func (r *ClientReconciler) reconcileStatusEndpoint(
 
 func (r *ClientReconciler) secretForClient(client *jumpstarterdevv1alpha1.Client) (*corev1.Secret, error) {
 	token, err := SignClientToken(
-		"https://localhost:8085",
-		[]string{"jumpstarter"},
 		client,
 		r.Scheme,
 		r.Key,
