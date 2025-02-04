@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 )
 
 // ClientReconciler reconciles a Client object
@@ -112,7 +113,7 @@ func (r *ClientReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ClientReconciler) secretForClient(client *jumpstarterdevv1alpha1.Client) (*corev1.Secret, error) {
-	token, err := SignInternalOIDCToken(
+	token, err := oidc.SignInternalOIDCToken(
 		*client.Spec.OIDCSubject,
 		r.Key,
 	)

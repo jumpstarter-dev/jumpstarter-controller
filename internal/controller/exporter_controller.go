@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 )
 
 // ExporterReconciler reconciles a Exporter object
@@ -152,7 +153,7 @@ func (r *ExporterReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.Exporter) (*corev1.Secret, error) {
-	token, err := SignInternalOIDCToken(
+	token, err := oidc.SignInternalOIDCToken(
 		*exporter.Spec.OIDCSubject,
 		r.Key,
 	)

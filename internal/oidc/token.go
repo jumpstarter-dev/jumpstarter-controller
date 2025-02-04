@@ -1,4 +1,4 @@
-package controller
+package oidc
 
 import (
 	"context"
@@ -47,8 +47,6 @@ func VerifyClientObjectToken(
 	ctx context.Context,
 	auth authenticator.Token,
 	token string,
-	issuer string,
-	audience string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Client, error) {
 	userInfo, err := VerifyOIDCToken(ctx, auth, token)
@@ -92,8 +90,6 @@ func VerifyExporterObjectToken(
 	ctx context.Context,
 	auth authenticator.Token,
 	token string,
-	issuer string,
-	audience string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Exporter, error) {
 	userInfo, err := VerifyOIDCToken(ctx, auth, token)

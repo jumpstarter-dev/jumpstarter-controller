@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	pb "github.com/jumpstarter-dev/jumpstarter-controller/internal/protocol/jumpstarter/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -74,12 +75,10 @@ func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarte
 		return nil, err
 	}
 
-	return controller.VerifyClientObjectToken(
+	return oidc.VerifyClientObjectToken(
 		ctx,
 		s.authenticator,
 		token,
-		"https://jumpstarter.dev/controller",
-		"https://jumpstarter.dev/controller",
 		s.Client,
 	)
 }
@@ -90,12 +89,10 @@ func (s *ControllerService) authenticateExporter(ctx context.Context) (*jumpstar
 		return nil, err
 	}
 
-	return controller.VerifyExporterObjectToken(
+	return oidc.VerifyExporterObjectToken(
 		ctx,
 		s.authenticator,
 		token,
-		"https://jumpstarter.dev/controller",
-		"https://jumpstarter.dev/controller",
 		s.Client,
 	)
 }
