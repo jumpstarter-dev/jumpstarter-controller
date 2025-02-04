@@ -17,17 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
-	"crypto/elliptic"
 	"crypto/tls"
-	"encoding/hex"
 	"encoding/pem"
 	"flag"
 	"net"
 	"os"
-	"strings"
-
-	"filippo.io/keygen"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -137,16 +131,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// FIXME: load oidcKey from env
-	seed, _ := hex.DecodeString(strings.Repeat("02962d72331a74087c829c4d73ff98b84d3dbbd587443b7e867630e470cef548", 10))
-	oidcKey, _ := keygen.ECDSALegacy(elliptic.P256(), bytes.NewReader(seed))
 	oidcCert, _ := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
-	oidcSigner := oidc.NewSigner(oidcKey)
+	oidcSigner, _ := oidc.NewSignerFromSeed([]byte(os.Getenv("CONTROLLER_KEY")))
 
 	if err = (&controller.ExporterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Signer: &oidcSigner,
+		Signer: oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
@@ -154,7 +145,7 @@ func main() {
 	if err = (&controller.ClientReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Signer: &oidcSigner,
+		Signer: oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Identity")
 		os.Exit(1)
@@ -195,7 +186,7 @@ func main() {
 	}
 
 	if err = (&service.OIDCService{
-		Signer: &oidcSigner,
+		Signer: oidcSigner,
 		Cert:   oidcCert,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Dashboard")

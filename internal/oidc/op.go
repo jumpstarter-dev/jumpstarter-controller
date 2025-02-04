@@ -3,9 +3,14 @@ package oidc
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
+	"encoding/binary"
+	"math/rand"
 	"strings"
 	"time"
 
+	"filippo.io/keygen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v5"
@@ -17,10 +22,21 @@ type Signer struct {
 	privatekey *ecdsa.PrivateKey
 }
 
-func NewSigner(privateKey *ecdsa.PrivateKey) Signer {
-	return Signer{
+func NewSigner(privateKey *ecdsa.PrivateKey) *Signer {
+	return &Signer{
 		privatekey: privateKey,
 	}
+}
+
+func NewSignerFromSeed(seed []byte) (*Signer, error) {
+	hash := sha256.Sum256(seed)
+	source := rand.NewSource(int64(binary.BigEndian.Uint64(hash[:8])))
+	reader := rand.New(source)
+	key, err := keygen.ECDSALegacy(elliptic.P256(), reader)
+	if err != nil {
+		return nil, err
+	}
+	return NewSigner(key), nil
 }
 
 func (k *Signer) ID() string {
