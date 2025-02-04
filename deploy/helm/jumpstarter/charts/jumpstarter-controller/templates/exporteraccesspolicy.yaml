@@ -2,7 +2,7 @@ apiVersion: jumpstarter.dev/v1alpha1
 kind: ExporterAccessPolicy
 metadata:
   name: default
-  namespace: {{ default .Release.Namespace .Values.namespace }}
+  namespace: default
   labels:
     control-plane: controller-manager
     app.kubernetes.io/name: jumpstarter-controller
