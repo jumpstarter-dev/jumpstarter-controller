@@ -1,8 +1,9 @@
 # Build the manager binary
-FROM registry.access.redhat.com/ubi9/go-toolset:1.22.9 AS builder
+FROM docker.io/golang:1.23 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
+WORKDIR /opt/app-root/src
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
