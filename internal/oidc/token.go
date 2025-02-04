@@ -4,31 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 
-	"github.com/golang-jwt/jwt/v5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func SignInternalOIDCToken(
-	subject string,
-	key interface{},
-) (string, error) {
-	return jwt.NewWithClaims(SigningMethod, jwt.RegisteredClaims{
-		Issuer:    Issuer,
-		Subject:   strings.TrimPrefix(subject, Prefix),
-		Audience:  []string{Audience},
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
-	}).SignedString(key)
-}
 
 func VerifyOIDCToken(ctx context.Context, auth authenticator.Token, token string) (user.Info, error) {
 	resp, ok, err := auth.AuthenticateToken(ctx, token)

@@ -37,7 +37,7 @@ import (
 type ClientReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Key    interface{}
+	Signer *oidc.Signer
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=clients,verbs=get;list;watch;create;update;patch;delete
@@ -113,10 +113,7 @@ func (r *ClientReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ClientReconciler) secretForClient(client *jumpstarterdevv1alpha1.Client) (*corev1.Secret, error) {
-	token, err := oidc.SignInternalOIDCToken(
-		*client.Spec.OIDCSubject,
-		r.Key,
-	)
+	token, err := r.Signer.Token(*client.Spec.OIDCSubject)
 	if err != nil {
 		return nil, err
 	}

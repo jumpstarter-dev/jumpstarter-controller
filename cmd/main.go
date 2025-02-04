@@ -46,6 +46,7 @@ import (
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/controller"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/service"
 	// +kubebuilder:scaffold:imports
 )
@@ -140,11 +141,12 @@ func main() {
 	seed, _ := hex.DecodeString(strings.Repeat("02962d72331a74087c829c4d73ff98b84d3dbbd587443b7e867630e470cef548", 10))
 	oidcKey, _ := keygen.ECDSALegacy(elliptic.P256(), bytes.NewReader(seed))
 	oidcCert, _ := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
+	oidcSigner := oidc.NewSigner(oidcKey)
 
 	if err = (&controller.ExporterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Key:    oidcKey,
+		Signer: &oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
@@ -152,7 +154,7 @@ func main() {
 	if err = (&controller.ClientReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Key:    oidcKey,
+		Signer: &oidcSigner,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Identity")
 		os.Exit(1)

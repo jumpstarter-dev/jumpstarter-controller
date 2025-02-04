@@ -36,7 +36,7 @@ import (
 type ExporterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Key    interface{}
+	Signer *oidc.Signer
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=exporters,verbs=get;list;watch;create;update;patch;delete
@@ -153,10 +153,7 @@ func (r *ExporterReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.Exporter) (*corev1.Secret, error) {
-	token, err := oidc.SignInternalOIDCToken(
-		*exporter.Spec.OIDCSubject,
-		r.Key,
-	)
+	token, err := r.Signer.Token(*exporter.Spec.OIDCSubject)
 	if err != nil {
 		return nil, err
 	}
