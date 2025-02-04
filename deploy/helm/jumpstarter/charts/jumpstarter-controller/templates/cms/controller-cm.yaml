@@ -37,3 +37,6 @@ data:
         username:
           claim: "sub"
           prefix: ""
+        extra:
+        - key: jumpstarter.dev/name
+          valueExpression: claims.name

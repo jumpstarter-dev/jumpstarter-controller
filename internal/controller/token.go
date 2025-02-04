@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -122,7 +123,26 @@ func VerifyClientObjectToken(
 			return &c, nil
 		}
 	}
-	return nil, fmt.Errorf("no matching client")
+
+	name, ok := userInfo.GetExtra()["jumpstarter.dev/name"]
+	if !ok || len(name) != 1 {
+		return nil, fmt.Errorf("no matching exporter")
+	}
+
+	var client = jumpstarterdevv1alpha1.Client{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: os.Getenv("NAMESPACE"), // FIXME: read namespace from claim
+			Name:      name[0],
+		},
+		Spec: jumpstarterdevv1alpha1.ClientSpec{
+			OIDCSubject: ptr.To(userInfo.GetName()),
+		},
+	}
+	if err := kclient.Create(ctx, &client); err != nil {
+		return nil, err
+	}
+
+	return &client, nil
 }
 
 func VerifyExporterObjectToken(
@@ -137,16 +157,35 @@ func VerifyExporterObjectToken(
 	if err != nil {
 		return nil, err
 	}
-	var clients jumpstarterdevv1alpha1.ExporterList
-	if err = kclient.List(ctx, &clients); err != nil {
+	var exporters jumpstarterdevv1alpha1.ExporterList
+	if err = kclient.List(ctx, &exporters); err != nil {
 		return nil, err
 	}
-	for _, c := range clients.Items {
+	for _, e := range exporters.Items {
 		if true &&
-			c.Spec.OIDCSubject != nil &&
-			*c.Spec.OIDCSubject == userInfo.GetName() {
-			return &c, nil
+			e.Spec.OIDCSubject != nil &&
+			*e.Spec.OIDCSubject == userInfo.GetName() {
+			return &e, nil
 		}
 	}
-	return nil, fmt.Errorf("no matching exporter")
+
+	name, ok := userInfo.GetExtra()["jumpstarter.dev/name"]
+	if !ok || len(name) != 1 {
+		return nil, fmt.Errorf("no matching exporter")
+	}
+
+	var exporter = jumpstarterdevv1alpha1.Exporter{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: os.Getenv("NAMESPACE"), // FIXME: read namespace from claim
+			Name:      name[0],
+		},
+		Spec: jumpstarterdevv1alpha1.ExporterSpec{
+			OIDCSubject: ptr.To(userInfo.GetName()),
+		},
+	}
+	if err := kclient.Create(ctx, &exporter); err != nil {
+		return nil, err
+	}
+
+	return &exporter, nil
 }
