@@ -14,6 +14,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func ClientSubject(c *jumpstarterdevv1alpha1.Client, prefix string) string {
+	if c.Spec.OIDCSubject == nil {
+		return prefix + c.Name
+	} else {
+		return *c.Spec.OIDCSubject
+	}
+}
+
+func ExporterSubject(e *jumpstarterdevv1alpha1.Exporter, prefix string) string {
+	if e.Spec.OIDCSubject == nil {
+		return prefix + e.Name
+	} else {
+		return *e.Spec.OIDCSubject
+	}
+}
+
 func VerifyOIDCToken(ctx context.Context, auth authenticator.Token, token string) (user.Info, error) {
 	resp, ok, err := auth.AuthenticateToken(ctx, token)
 	if err != nil {
@@ -31,6 +47,7 @@ func VerifyClientObjectToken(
 	ctx context.Context,
 	auth authenticator.Token,
 	token string,
+	prefix string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Client, error) {
 	userInfo, err := VerifyOIDCToken(ctx, auth, token)
@@ -42,9 +59,7 @@ func VerifyClientObjectToken(
 		return nil, err
 	}
 	for _, c := range clients.Items {
-		if true &&
-			c.Spec.OIDCSubject != nil &&
-			*c.Spec.OIDCSubject == userInfo.GetName() {
+		if ClientSubject(&c, prefix) == userInfo.GetName() {
 			return &c, nil
 		}
 	}
@@ -74,6 +89,7 @@ func VerifyExporterObjectToken(
 	ctx context.Context,
 	auth authenticator.Token,
 	token string,
+	prefix string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Exporter, error) {
 	userInfo, err := VerifyOIDCToken(ctx, auth, token)
@@ -85,9 +101,7 @@ func VerifyExporterObjectToken(
 		return nil, err
 	}
 	for _, e := range exporters.Items {
-		if true &&
-			e.Spec.OIDCSubject != nil &&
-			*e.Spec.OIDCSubject == userInfo.GetName() {
+		if ExporterSubject(&e, prefix) == userInfo.GetName() {
 			return &e, nil
 		}
 	}

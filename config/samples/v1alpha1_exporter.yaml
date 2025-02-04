@@ -5,5 +5,4 @@ metadata:
     app.kubernetes.io/name: jumpstarter-router
     dut: fancy-hardware
   name: exporter-sample
-spec:
-  oidcSubject: internal:exmporter-sample
+spec: {}

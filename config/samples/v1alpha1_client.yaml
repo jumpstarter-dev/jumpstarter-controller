@@ -6,5 +6,4 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     client-type: developer
   name: client-sample
-spec:
-  oidcSubject: internal:client-sample
+spec: {}

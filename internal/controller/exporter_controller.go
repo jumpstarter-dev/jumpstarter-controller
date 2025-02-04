@@ -153,7 +153,7 @@ func (r *ExporterReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.Exporter) (*corev1.Secret, error) {
-	token, err := r.Signer.Token(*exporter.Spec.OIDCSubject)
+	token, err := r.Signer.Token(oidc.ExporterSubject(exporter, r.Signer.Prefix()))
 	if err != nil {
 		return nil, err
 	}
