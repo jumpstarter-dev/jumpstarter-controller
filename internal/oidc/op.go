@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
