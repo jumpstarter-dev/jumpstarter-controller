@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -20,11 +21,17 @@ import (
 
 type Signer struct {
 	privatekey *ecdsa.PrivateKey
+	issuer     string
+	audience   string
+	prefix     string
 }
 
 func NewSigner(privateKey *ecdsa.PrivateKey) *Signer {
 	return &Signer{
 		privatekey: privateKey,
+		issuer:     "https://localhost:8085",
+		audience:   "jumpstarter",
+		prefix:     "internal:",
 	}
 }
 
@@ -39,12 +46,24 @@ func NewSignerFromSeed(seed []byte) (*Signer, error) {
 	return NewSigner(key), nil
 }
 
+func (k *Signer) Issuer() string {
+	return k.issuer
+}
+
+func (k *Signer) Audience() string {
+	return k.audience
+}
+
+func (k *Signer) Prefix() string {
+	return k.prefix
+}
+
 func (k *Signer) ID() string {
 	return "default"
 }
 
 func (k *Signer) Algorithm() jose.SignatureAlgorithm {
-	return SignatureAlgorithm
+	return jose.ES256
 }
 
 func (k *Signer) Use() string {
@@ -62,8 +81,8 @@ func (k *Signer) KeySet(context.Context) ([]op.Key, error) {
 func (k *Signer) Register(group gin.IRoutes) {
 	group.GET("/.well-known/openid-configuration", func(c *gin.Context) {
 		op.Discover(c.Writer, &oidc.DiscoveryConfiguration{
-			Issuer:  Issuer,
-			JwksURI: Issuer + "/jwks",
+			Issuer:  k.issuer,
+			JwksURI: k.issuer + "/jwks",
 		})
 	})
 
@@ -75,10 +94,13 @@ func (k *Signer) Register(group gin.IRoutes) {
 func (k *Signer) Token(
 	subject string,
 ) (string, error) {
-	return jwt.NewWithClaims(SigningMethod, jwt.RegisteredClaims{
-		Issuer:    Issuer,
-		Subject:   strings.TrimPrefix(subject, Prefix),
-		Audience:  []string{Audience},
+	if !strings.HasPrefix(subject, k.prefix) {
+		return "", fmt.Errorf("the subject is missing required signer prefix")
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
+		Issuer:    k.issuer,
+		Subject:   strings.TrimPrefix(subject, k.prefix),
+		Audience:  []string{k.audience},
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)), // FIXME: rotate keys on expiration
 	}).SignedString(k.privatekey)

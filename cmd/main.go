@@ -168,6 +168,7 @@ func main() {
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
+		Signer: oidcSigner,
 		CertificateAuthority: string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: oidcCert.Certificate[0],

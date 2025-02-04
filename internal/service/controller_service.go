@@ -61,6 +61,7 @@ type ControllerService struct {
 	Scheme               *runtime.Scheme
 	listenQueues         sync.Map
 	authenticator        authenticator.Token
+	Signer               *oidc.Signer
 	CertificateAuthority string
 }
 
@@ -697,6 +698,7 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		ctx,
 		s.Scheme,
 		[]byte(rawAuthenticationConfig),
+		s.Signer,
 		s.CertificateAuthority,
 	)
 	if err != nil {

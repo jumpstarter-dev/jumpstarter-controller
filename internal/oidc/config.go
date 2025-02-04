@@ -3,8 +3,6 @@ package oidc
 import (
 	"context"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/golang-jwt/jwt/v5"
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -17,21 +15,11 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	Issuer             string                  = "https://localhost:8085"
-	Audience           string                  = "jumpstarter"
-	Prefix             string                  = "internal:"
-	SignatureAlgorithm jose.SignatureAlgorithm = jose.ES256
-)
-
-var (
-	SigningMethod jwt.SigningMethod = jwt.SigningMethodES256
-)
-
 func LoadAuthenticationConfiguration(
 	ctx context.Context,
 	scheme *runtime.Scheme,
 	configuration []byte,
+	signer *Signer,
 	certificateAuthority string,
 ) (authenticator.Token, error) {
 	var authenticationConfiguration jumpstarterdevv1alpha1.AuthenticationConfiguration
@@ -46,14 +34,14 @@ func LoadAuthenticationConfiguration(
 
 	authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
 		Issuer: apiserverv1beta1.Issuer{
-			URL:                  Issuer,
+			URL:                  signer.Issuer(),
 			CertificateAuthority: certificateAuthority,
-			Audiences:            []string{Audience},
+			Audiences:            []string{signer.Audience()},
 		},
 		ClaimMappings: apiserverv1beta1.ClaimMappings{
 			Username: apiserverv1beta1.PrefixedClaimOrExpression{
 				Claim:  "sub",
-				Prefix: ptr.To(Prefix),
+				Prefix: ptr.To(signer.Prefix()),
 			},
 		},
 	})
