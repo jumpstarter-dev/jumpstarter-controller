@@ -49,7 +49,7 @@ func LoadAuthenticationConfiguration(
 		},
 	})
 
-	authenticator, err := NewJWTAuthenticator(
+	authenticator, err := newJWTAuthenticator(
 		ctx,
 		scheme,
 		authenticationConfiguration,
@@ -62,7 +62,7 @@ func LoadAuthenticationConfiguration(
 }
 
 // Reference: https://github.com/kubernetes/kubernetes/blob/v1.32.1/pkg/kubeapiserver/authenticator/config.go#L244
-func NewJWTAuthenticator(
+func newJWTAuthenticator(
 	ctx context.Context,
 	scheme *runtime.Scheme,
 	config jumpstarterdevv1alpha1.AuthenticationConfiguration,
