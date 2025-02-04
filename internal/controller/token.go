@@ -107,23 +107,22 @@ func VerifyClientObjectToken(
 	audience string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Client, error) {
-	// Try verify token as an OIDC token, ignore errors
-	if userInfo, err := VerifyOIDCToken(ctx, auth, token); err == nil {
-		var clients jumpstarterdevv1alpha1.ClientList
-		if err = kclient.List(ctx, &clients); err != nil {
-			return nil, err
-		}
-		for _, c := range clients.Items {
-			if true &&
-				c.Spec.OIDCSubject != nil &&
-				*c.Spec.OIDCSubject == userInfo.GetName() {
-				return &c, nil
-			}
+	userInfo, err := VerifyOIDCToken(ctx, auth, token)
+	if err != nil {
+		return nil, err
+	}
+	var clients jumpstarterdevv1alpha1.ClientList
+	if err = kclient.List(ctx, &clients); err != nil {
+		return nil, err
+	}
+	for _, c := range clients.Items {
+		if true &&
+			c.Spec.OIDCSubject != nil &&
+			*c.Spec.OIDCSubject == userInfo.GetName() {
+			return &c, nil
 		}
 	}
-	return VerifyObjectToken[jumpstarterdevv1alpha1.Client](
-		ctx, token, issuer, audience, kclient,
-	)
+	return nil, fmt.Errorf("no matching client")
 }
 
 func VerifyExporterObjectToken(
@@ -134,68 +133,20 @@ func VerifyExporterObjectToken(
 	audience string,
 	kclient client.Client,
 ) (*jumpstarterdevv1alpha1.Exporter, error) {
-	// Try verify token as an OIDC token, ignore errors
-	if userInfo, err := VerifyOIDCToken(ctx, auth, token); err == nil {
-		var clients jumpstarterdevv1alpha1.ExporterList
-		if err = kclient.List(ctx, &clients); err != nil {
-			return nil, err
-		}
-		for _, c := range clients.Items {
-			if true &&
-				c.Spec.OIDCSubject != nil &&
-				*c.Spec.OIDCSubject == userInfo.GetName() {
-				return &c, nil
-			}
-		}
-	}
-	return VerifyObjectToken[jumpstarterdevv1alpha1.Exporter](
-		ctx, token, issuer, audience, kclient,
-	)
-}
-
-func VerifyObjectToken[T any, PT Object[T]](
-	ctx context.Context,
-	token string,
-	issuer string,
-	audience string,
-	client client.Client,
-) (*T, error) {
-
-	parsed, err := jwt.ParseWithClaims(
-		token,
-		&JumpstarterClaims{},
-		KeyFunc,
-		jwt.WithIssuer(issuer),
-		jwt.WithAudience(audience),
-		jwt.WithIssuedAt(),
-		jwt.WithValidMethods([]string{
-			jwt.SigningMethodHS256.Name,
-			jwt.SigningMethodHS384.Name,
-			jwt.SigningMethodHS512.Name,
-		}),
-	)
+	userInfo, err := VerifyOIDCToken(ctx, auth, token)
 	if err != nil {
 		return nil, err
-	} else if claims, ok := parsed.Claims.(*JumpstarterClaims); ok {
-		var object T
-		err = client.Get(
-			ctx,
-			types.NamespacedName{
-				Namespace: claims.Namespace,
-				Name:      claims.Name,
-			},
-			PT(&object),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if PT(&object).GetUID() != claims.UID {
-			return nil, fmt.Errorf("VerifyObjectToken: UID mismatch")
-		}
-
-		return &object, nil
-	} else {
-		return nil, fmt.Errorf("%T is not a JumpstarterClaims", parsed.Claims)
 	}
+	var clients jumpstarterdevv1alpha1.ExporterList
+	if err = kclient.List(ctx, &clients); err != nil {
+		return nil, err
+	}
+	for _, c := range clients.Items {
+		if true &&
+			c.Spec.OIDCSubject != nil &&
+			*c.Spec.OIDCSubject == userInfo.GetName() {
+			return &c, nil
+		}
+	}
+	return nil, fmt.Errorf("no matching exporter")
 }
