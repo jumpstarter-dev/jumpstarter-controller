@@ -17,9 +17,6 @@ func NewJWTAuthenticator(
 	ctx context.Context,
 	scheme *runtime.Scheme,
 	config jumpstarterdevv1alpha1.AuthenticationConfiguration,
-	apiAudiences authenticator.Audiences,
-	oidcSigningAlgs []string,
-	disallowedIssuers []string,
 ) (authenticator.Token, error) {
 	var jwtAuthenticators []authenticator.Token
 	for _, jwtAuthenticator := range config.JWT {
@@ -41,16 +38,12 @@ func NewJWTAuthenticator(
 		oidcAuth, err := oidc.New(ctx, oidc.Options{
 			JWTAuthenticator:     jwtAuthenticatorUnversioned,
 			CAContentProvider:    oidcCAContent,
-			SupportedSigningAlgs: oidcSigningAlgs,
-			DisallowedIssuers:    disallowedIssuers,
+			SupportedSigningAlgs: oidc.AllValidSigningAlgorithms(),
 		})
 		if err != nil {
 			return nil, err
 		}
 		jwtAuthenticators = append(jwtAuthenticators, oidcAuth)
 	}
-	return authenticator.WrapAudienceAgnosticToken(
-		apiAudiences,
-		tokenunion.NewFailOnError(jwtAuthenticators...),
-	), nil
+	return tokenunion.NewFailOnError(jwtAuthenticators...), nil
 }
