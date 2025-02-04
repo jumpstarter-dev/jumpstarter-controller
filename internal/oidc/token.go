@@ -51,7 +51,7 @@ func VerifyClientObjectToken(
 
 	name, ok := userInfo.GetExtra()["jumpstarter.dev/name"]
 	if !ok || len(name) != 1 {
-		return nil, fmt.Errorf("no matching exporter")
+		return nil, fmt.Errorf("no matching client")
 	}
 
 	var client = jumpstarterdevv1alpha1.Client{
