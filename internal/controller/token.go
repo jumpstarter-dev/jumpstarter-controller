@@ -30,11 +30,6 @@ func SignInternalOIDCToken(
 	}).SignedString(key)
 }
 
-type OIDCClaims struct {
-	Issuer  string `json:"iss"`
-	Subject string `json:"sub"`
-}
-
 func VerifyOIDCToken(ctx context.Context, auth authenticator.Token, token string) (user.Info, error) {
 	resp, ok, err := auth.AuthenticateToken(ctx, token)
 	if err != nil {
