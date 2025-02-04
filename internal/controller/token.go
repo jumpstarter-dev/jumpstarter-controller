@@ -11,40 +11,22 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func SignExporterToken(
-	exporter *jumpstarterdevv1alpha1.Exporter,
-	scheme *runtime.Scheme,
+func SignInternalOIDCToken(
+	subject string,
 	key interface{},
 ) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
 		Issuer:    "https://localhost:8085",
-		Subject:   strings.TrimPrefix(*exporter.Spec.OIDCSubject, "internal:"),
+		Subject:   strings.TrimPrefix(subject, "internal:"),
 		Audience:  []string{"jumpstarter"},
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(365 * 24 * time.Hour)),
-	}).SignedString(key)
-}
-
-func SignClientToken(
-	client *jumpstarterdevv1alpha1.Client,
-	scheme *runtime.Scheme,
-	key interface{},
-) (string, error) {
-	return jwt.NewWithClaims(jwt.SigningMethodES256, jwt.RegisteredClaims{
-		Issuer:    "https://localhost:8085",
-		Subject:   strings.TrimPrefix(*client.Spec.OIDCSubject, "internal:"),
-		Audience:  []string{"jumpstarter"},
-		NotBefore: jwt.NewNumericDate(time.Now()),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ID:        string(uuid.NewUUID()),
 	}).SignedString(key)
 }
 

@@ -112,9 +112,8 @@ func (r *ClientReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ClientReconciler) secretForClient(client *jumpstarterdevv1alpha1.Client) (*corev1.Secret, error) {
-	token, err := SignClientToken(
-		client,
-		r.Scheme,
+	token, err := SignInternalOIDCToken(
+		*client.Spec.OIDCSubject,
 		r.Key,
 	)
 	if err != nil {
