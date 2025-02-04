@@ -18,7 +18,10 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/hex"
+	"encoding/pem"
 	"flag"
+	"net"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -128,9 +131,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// FIXME: load oidcKey from env
+	oidcKey, _ := hex.DecodeString("02962d72331a74087c829c4d73ff98b84d3dbbd587443b7e867630e470cef548")
+	oidcCert, _ := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
+
 	if err = (&controller.ExporterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Key:    oidcKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
@@ -138,6 +146,7 @@ func main() {
 	if err = (&controller.ClientReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Key:    oidcKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Identity")
 		os.Exit(1)
@@ -160,6 +169,11 @@ func main() {
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
+		Key:    oidcKey,
+		CertificateAuthority: string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: oidcCert.Certificate[0],
+		})),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Controller")
 		os.Exit(1)
@@ -170,6 +184,16 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Router")
+		os.Exit(1)
+	}
+
+	if err = (&service.OIDCService{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Key:    oidcKey,
+		Cert:   oidcCert,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create service", "service", "Dashboard")
 		os.Exit(1)
 	}
 

@@ -36,6 +36,7 @@ import (
 type ClientReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Key    []byte
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=clients,verbs=get;list;watch;create;update;patch;delete
@@ -111,11 +112,12 @@ func (r *ClientReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ClientReconciler) secretForClient(client *jumpstarterdevv1alpha1.Client) (*corev1.Secret, error) {
-	token, err := SignObjectToken(
-		"https://jumpstarter.dev/controller",
-		[]string{"https://jumpstarter.dev/controller"},
+	token, err := SignClientToken(
+		"https://localhost:8085",
+		[]string{"jumpstarter"},
 		client,
 		r.Scheme,
+		r.Key,
 	)
 	if err != nil {
 		return nil, err

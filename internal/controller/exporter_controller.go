@@ -35,6 +35,7 @@ import (
 type ExporterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Key    []byte
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=exporters,verbs=get;list;watch;create;update;patch;delete
@@ -151,11 +152,12 @@ func (r *ExporterReconciler) reconcileStatusEndpoint(
 }
 
 func (r *ExporterReconciler) secretForExporter(exporter *jumpstarterdevv1alpha1.Exporter) (*corev1.Secret, error) {
-	token, err := SignObjectToken(
-		"https://jumpstarter.dev/controller",
-		[]string{"https://jumpstarter.dev/controller"},
+	token, err := SignExporterToken(
+		"https://localhost:8085",
+		[]string{"jumpstarter"},
 		exporter,
 		r.Scheme,
+		r.Key,
 	)
 	if err != nil {
 		return nil, err

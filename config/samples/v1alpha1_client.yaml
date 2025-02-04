@@ -7,5 +7,4 @@ metadata:
     client-type: developer
   name: client-sample
 spec:
-  oidcIssuer: http://10.239.206.8:5556/dex
-  oidcSubject: CiQ3M2JjYTBiOS05YmU2LTRlNzMtYThmYi0zNDdjMmFjMjMyNTUSBWxvY2Fs
+  oidcSubject: internal:client-sample

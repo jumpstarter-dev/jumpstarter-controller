@@ -60,10 +60,12 @@ import (
 // ControlerService exposes a gRPC service
 type ControllerService struct {
 	pb.UnimplementedControllerServiceServer
-	Client        client.WithWatch
-	Scheme        *runtime.Scheme
-	listenQueues  sync.Map
-	authenticator authenticator.Token
+	Client               client.WithWatch
+	Scheme               *runtime.Scheme
+	listenQueues         sync.Map
+	authenticator        authenticator.Token
+	CertificateAuthority string
+	Key                  []byte
 }
 
 func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarterdevv1alpha1.Client, error) {
@@ -707,28 +709,26 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		return err
 	}
 
-	if len(authenticationConfiguration.JWT) == 0 {
-		authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
-			Issuer: apiserverv1beta1.Issuer{
-				URL:                  "https://localhost:8084",
-				CertificateAuthority: "",
-				Audiences:            []string{"jumpstarter"},
-				AudienceMatchPolicy:  "MatchAny",
+	authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
+		Issuer: apiserverv1beta1.Issuer{
+			URL:                  Issuer,
+			CertificateAuthority: s.CertificateAuthority,
+			Audiences:            []string{"jumpstarter"},
+			AudienceMatchPolicy:  "MatchAny",
+		},
+		ClaimMappings: apiserverv1beta1.ClaimMappings{
+			Username: apiserverv1beta1.PrefixedClaimOrExpression{
+				Claim:  "sub",
+				Prefix: ptr.To("internal:"),
 			},
-			ClaimMappings: apiserverv1beta1.ClaimMappings{
-				Username: apiserverv1beta1.PrefixedClaimOrExpression{
-					Claim:  "sub",
-					Prefix: ptr.To("internal:"),
-				},
-				Extra: []apiserverv1beta1.ExtraMapping{
-					{
-						Key:             "jumpstarter.dev/name",
-						ValueExpression: "claims['jumpstarter.dev/name']",
-					},
+			Extra: []apiserverv1beta1.ExtraMapping{
+				{
+					Key:             "jumpstarter.dev/name",
+					ValueExpression: "claims['jumpstarter.dev/name']",
 				},
 			},
-		})
-	}
+		},
+	})
 
 	authenticator, err := controller.NewJWTAuthenticator(
 		ctx,
