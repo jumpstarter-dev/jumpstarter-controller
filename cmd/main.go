@@ -177,7 +177,6 @@ func main() {
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
-		Key:    oidcKey,
 		CertificateAuthority: string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: oidcCert.Certificate[0],
@@ -196,9 +195,7 @@ func main() {
 	}
 
 	if err = (&service.OIDCService{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Key:    oidcKey,
+		Signer: &oidcSigner,
 		Cert:   oidcCert,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Dashboard")

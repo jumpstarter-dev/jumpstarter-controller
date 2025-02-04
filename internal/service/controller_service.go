@@ -18,7 +18,6 @@ package service
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"net"
 	"os"
@@ -63,7 +62,6 @@ type ControllerService struct {
 	listenQueues         sync.Map
 	authenticator        authenticator.Token
 	CertificateAuthority string
-	Key                  *ecdsa.PrivateKey
 }
 
 func (s *ControllerService) authenticateClient(ctx context.Context) (*jumpstarterdevv1alpha1.Client, error) {
