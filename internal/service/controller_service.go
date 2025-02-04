@@ -45,8 +45,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
+	apiserverv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -703,6 +705,29 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		&authenticationConfiguration,
 	); err != nil {
 		return err
+	}
+
+	if len(authenticationConfiguration.JWT) == 0 {
+		authenticationConfiguration.JWT = append(authenticationConfiguration.JWT, apiserverv1beta1.JWTAuthenticator{
+			Issuer: apiserverv1beta1.Issuer{
+				URL:                  "https://localhost:8084",
+				CertificateAuthority: "",
+				Audiences:            []string{"jumpstarter"},
+				AudienceMatchPolicy:  "MatchAny",
+			},
+			ClaimMappings: apiserverv1beta1.ClaimMappings{
+				Username: apiserverv1beta1.PrefixedClaimOrExpression{
+					Claim:  "sub",
+					Prefix: ptr.To("internal:"),
+				},
+				Extra: []apiserverv1beta1.ExtraMapping{
+					{
+						Key:             "jumpstarter.dev/name",
+						ValueExpression: "claims['jumpstarter.dev/name']",
+					},
+				},
+			},
+		})
 	}
 
 	authenticator, err := controller.NewJWTAuthenticator(
