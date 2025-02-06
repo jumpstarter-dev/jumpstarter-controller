@@ -202,11 +202,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	authz, err := authorization.NewCELAuthorizer(watchClient, oidcSigner.Prefix())
+	if err != nil {
+		setupLog.Error(err, "unable to construct cel authorizer")
+		os.Exit(1)
+	}
+
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
 		Authn:  authentication.NewBearerTokenAuthenticator(authenticator),
-		Authz:  authorization.NewBasicAuthorizer(watchClient, oidcSigner.Prefix()),
+		Authz:  authz,
 		Attr: authorization.NewMetadataAttributesGetter(authorization.MetadataAttributesGetterConfig{
 			NamespaceKey: "jumpstarter-namespace",
 			ResourceKey:  "jumpstarter-kind",
