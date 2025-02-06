@@ -40,6 +40,7 @@ func NewCELAuthorizer(reader client.Reader, prefix string) (authorizer.Authorize
 			celgo.Variable("self", celgo.DynType),
 			celgo.Variable("user", celgo.DynType),
 			celgo.Variable("prefix", celgo.StringType),
+			celgo.Variable("kind", celgo.StringType),
 		},
 	})
 	if err != nil {
@@ -92,7 +93,7 @@ func (b *CELAuthorizer) Authorize(
 	}
 
 	compiled, err := b.compiler.CompileCELExpression(&Expression{
-		Expression: "(has(self.spec.username) ? self.spec.username : prefix + self.kind.lowerAscii() + ':' + self.metadata.namespace + ':' + self.metadata.name + ':' + self.metadata.uid) == user.username",
+		Expression: "(has(self.spec.username) ? self.spec.username : prefix + kind.lowerAscii() + ':' + self.metadata.namespace + ':' + self.metadata.name + ':' + self.metadata.uid) == user.username",
 	})
 
 	user := attributes.GetUser()
@@ -105,6 +106,7 @@ func (b *CELAuthorizer) Authorize(
 			"extra":    user.GetExtra(),
 		},
 		"prefix": b.prefix,
+		"kind":   attributes.GetResource(),
 	})
 	if err != nil {
 		return authorizer.DecisionDeny, "failed to evaluate expression", err
