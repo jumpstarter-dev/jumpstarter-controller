@@ -94,6 +94,10 @@ jumpstarter-controller:
       #       claim: "sub"
       #       prefix: ""
 
+    authorizationConfig: |
+      apiVersion: jumpstarter.dev/v1alpha1
+      kind: authorizationConfiguration
+
     grpc:
       hostname: ""
       routerHostname: ""

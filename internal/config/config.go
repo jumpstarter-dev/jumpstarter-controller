@@ -24,6 +24,11 @@ func LoadConfiguration(
 		return nil, err
 	}
 
+	_, ok := configmap.Data["authorization"]
+	if !ok {
+		return nil, fmt.Errorf("LoadConfiguration: missing authorization section")
+	}
+
 	rawAuthenticationConfiguration, ok := configmap.Data["authentication"]
 	if !ok {
 		return nil, fmt.Errorf("LoadConfiguration: missing authentication section")
