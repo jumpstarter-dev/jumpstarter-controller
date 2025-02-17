@@ -37,10 +37,9 @@ func NewCELAuthorizer(reader client.Reader, prefix string, expression string) (a
 	).Extend(environment.VersionedOptions{
 		IntroducedVersion: environment.DefaultCompatibilityVersion(),
 		EnvOptions: []celgo.EnvOption{
+			celgo.Variable("kind", celgo.StringType),
 			celgo.Variable("self", celgo.DynType),
 			celgo.Variable("user", celgo.DynType),
-			celgo.Variable("prefix", celgo.StringType),
-			celgo.Variable("kind", celgo.StringType),
 		},
 	})
 	if err != nil {
@@ -103,6 +102,7 @@ func (b *CELAuthorizer) Authorize(
 
 	user := attributes.GetUser()
 	value, _, err := b.program.Eval(map[string]any{
+		"kind": attributes.GetResource(),
 		"self": self,
 		"user": map[string]any{
 			"username": user.GetName(),
@@ -110,8 +110,6 @@ func (b *CELAuthorizer) Authorize(
 			"groups":   user.GetGroups(),
 			"extra":    user.GetExtra(),
 		},
-		"prefix": b.prefix,
-		"kind":   attributes.GetResource(),
 	})
 	if err != nil {
 		return authorizer.DecisionDeny, "failed to evaluate expression", err
