@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/authentication"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/authorization"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -20,7 +20,7 @@ func LoadConfiguration(
 	key client.ObjectKey,
 	signer *oidc.Signer,
 	certificateAuthority string,
-) (authenticator.Token, authorizer.Authorizer, error) {
+) (authentication.ContextAuthenticator, authorizer.Authorizer, error) {
 	var configmap corev1.ConfigMap
 	if err := client.Get(ctx, key, &configmap); err != nil {
 		return nil, nil, err
@@ -58,5 +58,5 @@ func LoadConfiguration(
 		return nil, nil, err
 	}
 
-	return authn, authz, nil
+	return authentication.NewBearerTokenAuthenticator(authn), authz, nil
 }
