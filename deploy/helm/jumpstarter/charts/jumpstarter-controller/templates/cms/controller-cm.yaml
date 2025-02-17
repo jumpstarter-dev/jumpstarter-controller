@@ -11,3 +11,4 @@ metadata:
     {{ end }}
 data:
   authentication: {{- .Values.authenticationConfig | toYaml | indent 1 }}
+  authorization: {{- .Values.authorizationConfig | toYaml | indent 1 }}

@@ -94,6 +94,13 @@ jumpstarter-controller:
       #       claim: "sub"
       #       prefix: ""
 
+    authorizationConfig: |
+      apiVersion: jumpstarter.dev/v1alpha1
+      kind: AuthorizationConfiguration
+      type: CEL
+      cel:
+        expression: "self.spec.username == user.username"
+
     grpc:
       hostname: ""
       routerHostname: ""
