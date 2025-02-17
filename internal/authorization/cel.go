@@ -83,6 +83,7 @@ func (b *CELAuthorizer) Authorize(
 		if err != nil {
 			return authorizer.DecisionDeny, "failed to serialize exporter", err
 		}
+		self["spec"].(map[string]any)["username"] = e.Username(b.prefix)
 	case "Client":
 		var c jumpstarterdevv1alpha1.Client
 		if err := b.reader.Get(ctx, client.ObjectKey{
@@ -95,6 +96,7 @@ func (b *CELAuthorizer) Authorize(
 		if err != nil {
 			return authorizer.DecisionDeny, "failed to serialize client", err
 		}
+		self["spec"].(map[string]any)["username"] = c.Username(b.prefix)
 	default:
 		return authorizer.DecisionDeny, "invalid object kind", nil
 	}
