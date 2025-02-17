@@ -14,9 +14,9 @@ import (
 )
 
 type CELAuthorizer struct {
-	reader   client.Reader
-	prefix   string
-	compiler cel.Compiler
+	reader  client.Reader
+	prefix  string
+	program celgo.Program
 }
 type Expression struct {
 	Expression string
@@ -30,7 +30,7 @@ func (v *Expression) ReturnTypes() []*celgo.Type {
 	return []*celgo.Type{celgo.BoolType}
 }
 
-func NewCELAuthorizer(reader client.Reader, prefix string) (authorizer.Authorizer, error) {
+func NewCELAuthorizer(reader client.Reader, prefix string, expression string) (authorizer.Authorizer, error) {
 	env, err := environment.MustBaseEnvSet(
 		environment.DefaultCompatibilityVersion(),
 		false,
@@ -49,10 +49,17 @@ func NewCELAuthorizer(reader client.Reader, prefix string) (authorizer.Authorize
 
 	compiler := cel.NewCompiler(env)
 
+	compiled, err := compiler.CompileCELExpression(&Expression{
+		Expression: expression,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &CELAuthorizer{
-		reader:   reader,
-		prefix:   prefix,
-		compiler: compiler,
+		reader:  reader,
+		prefix:  prefix,
+		program: compiled.Program,
 	}, nil
 }
 
@@ -92,12 +99,8 @@ func (b *CELAuthorizer) Authorize(
 		return authorizer.DecisionDeny, "invalid object kind", nil
 	}
 
-	compiled, err := b.compiler.CompileCELExpression(&Expression{
-		Expression: "(has(self.spec.username) ? self.spec.username : prefix + kind.lowerAscii() + ':' + self.metadata.namespace + ':' + self.metadata.name + ':' + self.metadata.uid) == user.username",
-	})
-
 	user := attributes.GetUser()
-	value, _, err := compiled.Program.Eval(map[string]any{
+	value, _, err := b.program.Eval(map[string]any{
 		"self": self,
 		"user": map[string]any{
 			"username": user.GetName(),

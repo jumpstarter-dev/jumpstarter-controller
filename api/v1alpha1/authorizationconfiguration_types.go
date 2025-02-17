@@ -9,6 +9,12 @@ import (
 // AuthorizationConfiguration provides versioned configuration for authorization.
 type AuthorizationConfiguration struct {
 	metav1.TypeMeta
+	Type string            `json:"type"`
+	CEL  *CELConfiguration `json:"cel,omitempty"`
+}
+
+type CELConfiguration struct {
+	Expression string `json:"expression"`
 }
 
 func init() {

@@ -96,7 +96,11 @@ jumpstarter-controller:
 
     authorizationConfig: |
       apiVersion: jumpstarter.dev/v1alpha1
-      kind: authorizationConfiguration
+      kind: AuthorizationConfiguration
+      type: CEL
+      cel:
+        expression: (has(self.spec.username) ? self.spec.username : prefix + kind.lowerAscii() + ':' + self.metadat
+a.namespace + ':' + self.metadata.name + ':' + self.metadata.uid) == user.username
 
     grpc:
       hostname: ""

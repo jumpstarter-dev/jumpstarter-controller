@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/authorization"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,23 +20,18 @@ func LoadConfiguration(
 	key client.ObjectKey,
 	signer *oidc.Signer,
 	certificateAuthority string,
-) (authenticator.Token, error) {
+) (authenticator.Token, authorizer.Authorizer, error) {
 	var configmap corev1.ConfigMap
 	if err := client.Get(ctx, key, &configmap); err != nil {
-		return nil, err
-	}
-
-	_, ok := configmap.Data["authorization"]
-	if !ok {
-		return nil, fmt.Errorf("LoadConfiguration: missing authorization section")
+		return nil, nil, err
 	}
 
 	rawAuthenticationConfiguration, ok := configmap.Data["authentication"]
 	if !ok {
-		return nil, fmt.Errorf("LoadConfiguration: missing authentication section")
+		return nil, nil, fmt.Errorf("LoadConfiguration: missing authentication section")
 	}
 
-	authenticator, err := oidc.LoadAuthenticationConfiguration(
+	authn, err := oidc.LoadAuthenticationConfiguration(
 		ctx,
 		scheme,
 		[]byte(rawAuthenticationConfiguration),
@@ -42,8 +39,24 @@ func LoadConfiguration(
 		certificateAuthority,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return authenticator, nil
+	rawAuthorizationConfiguration, ok := configmap.Data["authorization"]
+	if !ok {
+		return nil, nil, fmt.Errorf("LoadConfiguration: missing authorization section")
+	}
+
+	authz, err := authorization.LoadAuthorizationConfiguration(
+		ctx,
+		scheme,
+		[]byte(rawAuthorizationConfiguration),
+		client,
+		signer.Prefix(),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return authn, authz, nil
 }
