@@ -4,15 +4,32 @@ on:
   pull_request:
     branches:
       - main
-
 jobs:
-  deploy-kind:
-    runs-on: ubuntu-latest
+  deploy-kind-matrix:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Run make deploy
         run: make deploy
+  # https://github.com/orgs/community/discussions/26822
+  deploy-kind:
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-kind-matrix
+    if: ${{ always() }}
+    steps:
+      - run: exit 1
+        if: >-
+          ${{
+               contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+            || contains(needs.*.result, 'skipped')
+          }}
