@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"encoding/pem"
 	"flag"
-	"net"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -135,7 +134,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	oidcCert, err := service.NewSelfSignedCertificate("jumpstarter oidc", []string{"localhost"}, []net.IP{})
+	oidcCert, err := service.NewSelfSignedLocalhostCertificate()
 	if err != nil {
 		setupLog.Error(err, "unable to generate certificate for internal oidc provider")
 		os.Exit(1)
