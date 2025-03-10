@@ -48,6 +48,10 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+      - name: tls
+        secret:
+          secretName: jumpstarter-tls
       containers:
       - args:
           - --leader-elect
@@ -55,21 +59,9 @@ spec:
           - -metrics-bind-address=:8080
         env:
         - name: GRPC_ENDPOINT
-          {{ if .Values.grpc.endpoint }}
-          value : {{ .Values.grpc.endpoint }}
-          {{ else if .Values.hostname }}
-          value: {{ .Values.hostname }}:{{ .Values.grpc.tls.port }}
-          {{ else }}
-          value: grpc.{{ .Values.global.baseDomain }}:{{ .Values.grpc.tls.port }}
-          {{ end }}
+          value: {{ template "controller.endpoint" . }}
         - name: GRPC_ROUTER_ENDPOINT
-          {{ if .Values.grpc.routerEndpoint }}
-          value: {{ .Values.grpc.routerEndpoint }}
-          {{ else if .Values.routerHostname }}
-          value: {{ .Values.routerHostname }}:{{ .Values.grpc.tls.port }}
-          {{ else }}
-          value: router.{{ .Values.global.baseDomain }}:{{ .Values.grpc.tls.port }}
-          {{ end }}
+          value: {{ template "router.endpoint" . }}
         - name: CONTROLLER_KEY
           valueFrom:
             secretKeyRef:
@@ -84,6 +76,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        volumeMounts:
+        - name: tls
+          mountPath: "/etc/jumpstarter/tls"
+          readOnly: true
 
         image: {{ .Values.image }}:{{ default .Chart.AppVersion .Values.tag }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
