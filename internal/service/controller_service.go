@@ -715,12 +715,7 @@ func (s *ControllerService) ListExporters(
 func (s *ControllerService) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
-	dnsnames, ipaddresses, err := endpointToSAN(controllerEndpoint())
-	if err != nil {
-		return err
-	}
-
-	cert, err := NewSelfSignedCertificate("jumpstarter controller", dnsnames, ipaddresses)
+	cert, err := LoadCertificate("/etc/jumpstarter/tls/")
 	if err != nil {
 		return err
 	}
