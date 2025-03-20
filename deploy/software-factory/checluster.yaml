@@ -17,7 +17,7 @@ spec:
               memory: 1Gi
       logLevel: INFO
     dashboard:
-      logLevel: ERROR
+      logLevel: DEBUG 
     devWorkspace: {}
     devfileRegistry:
       disableInternalRegistry: true
@@ -41,7 +41,7 @@ spec:
     ignoredUnrecoverableEvents:
     - FailedScheduling
     maxNumberOfWorkspacesPerUser: 4
-    secondsOfInactivityBeforeIdling: 1800
+    secondsOfInactivityBeforeIdling: 14440 
     secondsOfRunBeforeIdling: -1
     security: {}
     startTimeoutSeconds: 300
