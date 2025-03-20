@@ -1,0 +1,95 @@
+repositories:
+  - name: eclipse-che
+    url: https://eclipse-che.github.io/che-operator/charts
+
+  - name: jumpstarter
+    url: quay.io/jumpstarter-dev/helm
+    oci: true
+
+  - name: dex
+    url: https://charts.dexidp.io
+
+  - name: jetstack
+    url: https://charts.jetstack.io
+
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+
+releases:
+  - name: cert-manager
+    chart: jetstack/cert-manager
+    namespace: cert-manager
+    createNamespace: true
+    set:
+    - name: crds.enabled
+      value: true
+  # install the nginx ingress controller, enable SSL passthrough
+  - name: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    namespace: ingress-nginx
+    createNamespace: true
+    set:
+    - name: controller.extraArgs.enable-ssl-passthrough
+  - name: certificates
+    chart: ./charts/certificates
+    set:
+    - name: email
+      value: miguelangel@ajo.es
+    - name: ingressClassName
+      value: nginx
+
+
+# check for default nginx ingress setting
+  - name: dex
+    chart: dex/dex
+    namespace: dex
+    createNamespace: true
+    needs:
+      - cert-manager/cert-manager
+    values:
+      - values.dex.yaml
+
+  - name: jumpstarter
+    chart: jumpstarter/jumpstarter
+    needs:
+      - cert-manager/cert-manager
+    namespace: jumpstarter-lab
+    createNamespace: true
+    version: 0.5.0-107-g73628b2 
+    set:
+    - name: jumpstarter-controller.grpc.mode
+      value: ingress
+    - name: global.metrics.enabled
+      value: false
+    - name: global.baseDomain
+      value: demo.jumpstarter.dev
+    - name: jumpstarter-controller.grpc.ingress.class
+      value: nginx
+
+  - name: devworkspace-controller
+    chart: ./charts/devworkspace-controller/
+    namespace: devworkspace-controller
+    createNamespace: true
+
+  - name: eclipse-che
+    needs:
+      - cert-manager/cert-manager
+      - dex/dex
+      - devworkspace-controller/devworkspace-controller
+
+    chart: eclipse-che/eclipse-che
+    namespace: eclipse-che
+    createNamespace: true
+    version: 7.100.0
+    set:
+     - name: networking.domain
+       value: che.demo.jumpstarter.dev
+     - name: networking.auth.oAuthSecret
+       value: eclipse-che
+     - name: networking.auth.oAuthClientName
+       value: k8s-client
+     - name: networking.auth.identityProviderURL
+       value: "https://auth.demo.jumpstarter.dev"
+helmDefaults:
+  wait: true
+  waitForJobs: true

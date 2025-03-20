@@ -1,0 +1,3 @@
+The CRD definitions come from
+https://github.com/devfile/devworkspace-operator/blob/main/docs/installation/minikube-without-olm.md
+

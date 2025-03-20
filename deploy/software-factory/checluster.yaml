@@ -1,0 +1,73 @@
+apiVersion: org.eclipse.che/v2
+kind: CheCluster
+metadata:
+  name: eclipse-che
+  namespace: eclipse-che
+spec:
+  components:
+    cheServer:
+      extraProperties:
+        CHE_OIDC_USERNAME__CLAIM: email
+      debug: false
+      deployment:
+        containers:
+        - resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      logLevel: INFO
+    dashboard:
+      logLevel: ERROR
+    devWorkspace: {}
+    devfileRegistry:
+      disableInternalRegistry: true
+      externalDevfileRegistries:
+      - url: https://registry.devfile.io
+    imagePuller:
+      enable: false
+      spec: {}
+    metrics:
+      enable: true
+    pluginRegistry:
+      disableInternalRegistry: true
+  containerRegistry: {}
+  devEnvironments:
+    containerBuildConfiguration:
+      openShiftSecurityContextConstraint: container-build
+    defaultNamespace:
+      autoProvision: true
+      template: <username>-che
+    disableContainerBuildCapabilities: true
+    ignoredUnrecoverableEvents:
+    - FailedScheduling
+    maxNumberOfWorkspacesPerUser: 4
+    secondsOfInactivityBeforeIdling: 1800
+    secondsOfRunBeforeIdling: -1
+    security: {}
+    startTimeoutSeconds: 300
+    storage:
+      pvcStrategy: per-user
+  gitServices: {}
+  networking:
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: acme
+    domain: che.demo.jumpstarter.dev
+    tlsSecretName: che-tls
+    auth:
+      gateway:
+        configLabels:
+          app: che
+          component: che-gateway-config
+        deployment:
+          containers:
+          - env:
+            - name: OAUTH2_PROXY_BACKEND_LOGOUT_URL
+              value: https://auth.demo.jumpstarter.dev/protocol/openid-connect/logout?id_token_hint={id_token}
+            name: oauth-proxy
+        oAuthProxy:
+          cookieExpireSeconds: 300
+      identityProviderURL: https://auth.demo.jumpstarter.dev/
+      oAuthClientName: k8s-client
+      oAuthSecret: eclipse-che
+

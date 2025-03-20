@@ -1,0 +1,67 @@
+replicaCount: 1
+#https:
+#  enabled: true
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: acme
+
+  className: nginx
+
+  hosts:
+    - host: auth.demo.jumpstarter.dev
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dex
+              port:
+                number: 5556
+
+  tls:
+    - hosts:
+        - auth.demo.jumpstarter.dev
+      secretName: dex-cert
+config:
+  issuer: https://auth.demo.jumpstarter.dev
+#  web:
+#    tlsCert: /etc/dex/tls/tls.crt
+#    tlsKey: /etc/dex/tls/tls.key
+  storage:
+    type: kubernetes
+    config:
+      inCluster: true
+  staticClients:
+    - id: jumpstarter-cli
+      name: Jumpstarter CLI
+      public: true
+    - id: k8s-client
+      name: K8S client
+      public: true
+      secret: eclipse-che
+      redirectURIs:
+        - "https://che.demo.jumpstarter.dev/oauth/callback"
+  oauth2:
+    #responseTypes: ["code", "token", "id_token", "id_token token"]
+    passwordConnector: local
+    skipApprovalScreen: true
+  enablePasswordDB: true
+  staticPasswords:
+    - email: "user1@jumpstarter.dev"
+      hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W" # password
+      username: "user1"
+      userID: "73bca0b9-9be6-4e73-a8fb-347c2ac23255"
+    - email: "user2@jumpstarter.dev"
+      hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W" # password
+      username: "user2"
+      userID: "a4cb4de2-4467-4e5c-a42a-33be8783649d"
+  #connectors:
+    #
+#volumes:
+#  - name: tls
+#    secret:
+#      secretName: dex-tls
+#volumeMounts:
+#  - name: tls
+#    mountPath: /etc/dex/tls
