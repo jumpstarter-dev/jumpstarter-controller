@@ -1,4 +1,4 @@
-#install
+# installing our software factory example
 
 
 ```bash
@@ -28,7 +28,6 @@ Configure OIDC in your k8s instance: vendor specific, see the documentation of y
 
 For the current configuration the following values are used:
 
-|---------------|-----------------------------------|
 | Key           | Value                             |
 |---------------|-----------------------------------|
 | issuer        | https://auth.demo.jumpstarter.dev |
