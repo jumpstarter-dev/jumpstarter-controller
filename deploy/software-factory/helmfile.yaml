@@ -26,10 +26,12 @@ releases:
   # install the nginx ingress controller, enable SSL passthrough
   - name: ingress-nginx
     chart: ingress-nginx/ingress-nginx
+    labels:
+      component: nginx
     namespace: ingress-nginx
     createNamespace: true
-    set:
-    - name: controller.extraArgs.enable-ssl-passthrough
+    values:
+      - values.nginx.yaml
   - name: certificates
     chart: ./charts/certificates
     set:

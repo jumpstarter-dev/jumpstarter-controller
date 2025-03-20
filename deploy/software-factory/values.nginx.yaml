@@ -1,0 +1,5 @@
+
+controller:
+  extraArgs:
+    enable-ssl-passthrough: ""
+
