@@ -69,11 +69,11 @@ var exporterCreateCmd = &cobra.Command{
 				return err
 			}
 			if secret.Data == nil {
-				return fmt.Errorf("Empty Secret on Exporter %s/%s", namespace, args[0])
+				return fmt.Errorf("empty Secret on Exporter %s/%s", namespace, args[0])
 			}
 			token, ok := secret.Data["token"]
 			if !ok {
-				return fmt.Errorf("Missing token in Secret for Exporter %s/%s", namespace, args[0])
+				return fmt.Errorf("missing token in Secret for Exporter %s/%s", namespace, args[0])
 			}
 			exporterConfig := []yaml.MapItem{
 				{
