@@ -69,11 +69,11 @@ var clientCreateCmd = &cobra.Command{
 				return err
 			}
 			if secret.Data == nil {
-				return fmt.Errorf("Empty Secret on Client %s/%s", namespace, args[0])
+				return fmt.Errorf("empty Secret on Client %s/%s", namespace, args[0])
 			}
 			token, ok := secret.Data["token"]
 			if !ok {
-				return fmt.Errorf("Missing token in Secret for Client %s/%s", namespace, args[0])
+				return fmt.Errorf("missing token in Secret for Client %s/%s", namespace, args[0])
 			}
 			clientConfig := []yaml.MapItem{
 				{
