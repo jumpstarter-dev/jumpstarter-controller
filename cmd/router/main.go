@@ -64,8 +64,6 @@ func main() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case sig := <-sigs:
-		logger.Info("received signal, exiting", "signal", sig)
-	}
+	sig := <-sigs
+	logger.Info("received signal, exiting", "signal", sig)
 }
