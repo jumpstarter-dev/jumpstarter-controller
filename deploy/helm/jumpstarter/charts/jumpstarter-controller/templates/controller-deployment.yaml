@@ -65,14 +65,6 @@ spec:
           {{ else }}
           value: grpc.{{ .Values.global.baseDomain }}:{{ .Values.grpc.tls.port }}
           {{ end }}
-        - name: GRPC_ROUTER_ENDPOINT
-          {{ if .Values.grpc.router.default.endpoint }}
-          value: {{ .Values.grpc.router.default.endpoint }}
-          {{ else if .Values.router.default.hostname }}
-          value: {{ .Values.router.default.hostname }}:{{ .Values.grpc.tls.port }}
-          {{ else }}
-          value: router.{{ .Values.global.baseDomain }}:{{ .Values.grpc.tls.port }}
-          {{ end }}
         - name: CONTROLLER_KEY
           valueFrom:
             secretKeyRef:

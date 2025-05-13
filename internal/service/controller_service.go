@@ -413,8 +413,19 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 		return nil, status.Errorf(codes.Internal, "unable to sign token")
 	}
 
-	// TODO: find best router from list
-	endpoint := routerEndpoint()
+	var endpoint string
+	// Current go map implementation guarantees a random ordering
+	for name, v := range s.Router {
+		endpoint = v.Endpoint
+		logger.Info("selected router", "name", name, "endpoint", endpoint)
+		break
+	}
+
+	if endpoint == "" {
+		err := fmt.Errorf("no router available")
+		logger.Error(err, "no router available")
+		return nil, err
+	}
 
 	response := &pb.ListenResponse{
 		RouterEndpoint: endpoint,
