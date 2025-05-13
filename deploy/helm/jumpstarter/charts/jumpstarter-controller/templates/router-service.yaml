@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
+    control-plane: controller-router
     app.kubernetes.io/name: jumpstarter-controller
   name: jumpstarter-router-grpc
   namespace: {{ default .Release.Namespace .Values.namespace }}
@@ -21,4 +21,4 @@ spec:
     nodePort: {{ .Values.grpc.nodeport.routerPort }}
     {{ end }}
   selector:
-    control-plane: controller-manager
+    control-plane: controller-router
