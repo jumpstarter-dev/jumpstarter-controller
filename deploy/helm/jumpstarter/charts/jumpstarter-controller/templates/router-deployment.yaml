@@ -20,6 +20,7 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: router
+        configmap-sha256: {{ include (print $.Template.BasePath "/cms/controller-cm.yaml") . | sha256sum }}
       labels:
         control-plane: controller-router
       {{ if .Values.global.timestamp }}
@@ -67,6 +68,10 @@ spec:
             secretKeyRef:
               name: jumpstarter-router-secret
               key: key
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
 
         image: {{ .Values.image }}:{{ default .Chart.AppVersion .Values.tag }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
@@ -95,5 +100,5 @@ spec:
           requests:
             cpu: 1000m
             memory: 256Mi
-      # serviceAccountName: controller-manager
+      serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

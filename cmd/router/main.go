@@ -24,6 +24,7 @@ import (
 	"syscall"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/go-logr/logr"
@@ -39,23 +40,28 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	logger := ctrl.Log.WithName("router")
+	ctx := logr.NewContext(context.Background(), logger)
 
-	option, err := config.LoadGrpcConfiguration(config.Grpc{
-		Keepalive: config.Keepalive{
-			MinTime:             "3s",
-			PermitWithoutStream: true,
-		},
+	cfg := ctrl.GetConfigOrDie()
+	client, err := kclient.New(cfg, kclient.Options{})
+	if err != nil {
+		logger.Error(err, "failed to create k8s client")
+		os.Exit(1)
+	}
+
+	serverOption, err := config.LoadRouterConfiguration(ctx, client, kclient.ObjectKey{
+		Namespace: os.Getenv("NAMESPACE"),
+		Name:      "jumpstarter-controller",
 	})
 	if err != nil {
-		logger.Error(err, "failed to load grpc configuration")
+		logger.Error(err, "failed to load router configuration")
 		os.Exit(1)
 	}
 
 	svc := service.RouterService{
-		ServerOption: option,
+		ServerOption: serverOption,
 	}
 
-	ctx := logr.NewContext(context.Background(), logger)
 	err = svc.Start(ctx)
 	if err != nil {
 		logger.Error(err, "failed to start router service")
