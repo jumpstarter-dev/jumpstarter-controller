@@ -151,7 +151,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authenticator, prefix, option, provisioning, err := config.LoadConfiguration(
+	authenticator, prefix, router, option, provisioning, err := config.LoadConfiguration(
 		context.Background(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
@@ -211,6 +211,7 @@ func main() {
 			ResourceKey:  "jumpstarter-kind",
 			NameKey:      "jumpstarter-name",
 		}),
+		Router:       router,
 		ServerOption: option,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Controller")

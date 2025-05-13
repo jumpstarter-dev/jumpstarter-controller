@@ -33,6 +33,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/authentication"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/authorization"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/config"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	cpb "github.com/jumpstarter-dev/jumpstarter-controller/internal/protocol/jumpstarter/client/v1"
 	pb "github.com/jumpstarter-dev/jumpstarter-controller/internal/protocol/jumpstarter/v1"
@@ -70,6 +71,7 @@ type ControllerService struct {
 	Authz        authorizer.Authorizer
 	Attr         authorization.ContextAttributesGetter
 	ServerOption grpc.ServerOption
+	Router       config.Router
 	listenQueues sync.Map
 }
 

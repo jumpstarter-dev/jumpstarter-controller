@@ -51,10 +51,20 @@ func LoadConfiguration(
 	key client.ObjectKey,
 	signer *oidc.Signer,
 	certificateAuthority string,
-) (authenticator.Token, string, grpc.ServerOption, *Provisioning, error) {
+) (authenticator.Token, string, Router, grpc.ServerOption, *Provisioning, error) {
 	var configmap corev1.ConfigMap
 	if err := client.Get(ctx, key, &configmap); err != nil {
-		return nil, "", nil, nil, err
+		return nil, "", nil, nil, nil, err
+	}
+
+	rawRouter, ok := configmap.Data["router"]
+	if !ok {
+		return nil, "", nil, nil, nil, fmt.Errorf("LoadConfiguration: missing router section")
+	}
+
+	var router Router
+	if err := yaml.Unmarshal([]byte(rawRouter), &router); err != nil {
+		return nil, "", nil, nil, nil, err
 	}
 
 	rawAuthenticationConfiguration, ok := configmap.Data["authentication"]
@@ -69,10 +79,10 @@ func LoadConfiguration(
 			certificateAuthority,
 		)
 		if err != nil {
-			return nil, "", nil, nil, err
+			return nil, "", nil, nil, nil, err
 		}
 
-		return authenticator, prefix, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+		return authenticator, prefix, router, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             1 * time.Second,
 			PermitWithoutStream: true,
 		}), &Provisioning{Enabled: false}, nil
@@ -80,13 +90,12 @@ func LoadConfiguration(
 
 	rawConfig, ok := configmap.Data["config"]
 	if !ok {
-		return nil, "", nil, nil, fmt.Errorf("LoadConfiguration: missing config section")
+		return nil, "", nil, nil, nil, fmt.Errorf("LoadConfiguration: missing config section")
 	}
 
 	var config Config
-	err := yaml.UnmarshalStrict([]byte(rawConfig), &config)
-	if err != nil {
-		return nil, "", nil, nil, err
+	if err := yaml.UnmarshalStrict([]byte(rawConfig), &config); err != nil {
+		return nil, "", nil, nil, nil, err
 	}
 
 	authenticator, prefix, err := LoadAuthenticationConfiguration(
@@ -97,13 +106,13 @@ func LoadConfiguration(
 		certificateAuthority,
 	)
 	if err != nil {
-		return nil, "", nil, nil, err
+		return nil, "", nil, nil, nil, err
 	}
 
 	serverOptions, err := LoadGrpcConfiguration(config.Grpc)
 	if err != nil {
-		return nil, "", nil, nil, err
+		return nil, "", nil, nil, nil, err
 	}
 
-	return authenticator, prefix, serverOptions, &config.Provisioning, nil
+	return authenticator, prefix, router, serverOptions, &config.Provisioning, nil
 }
