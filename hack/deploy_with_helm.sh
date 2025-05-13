@@ -23,19 +23,15 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
     lsmod | grep ip_tables || \
       (echo "ip_tables module not loaded needed by nginx ingress, please run 'sudo modprobe ip_tables'" && exit 1)
 
-    # before our helm installs, we make sure that kind has an ingress installed
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-
-    echo -e "${GREEN}Waiting for nginx to be ready ...${NC}"
-
-    while ! kubectl get pods --namespace ingress-nginx --selector=app.kubernetes.io/component=controller > /dev/null; do
-      sleep 1
-    done
-
-    kubectl wait --namespace ingress-nginx \
-      --for=condition=ready pod \
-      --selector=app.kubernetes.io/component=controller \
-      --timeout=90s
+    helm upgrade --wait --install ingress-nginx ingress-nginx \
+      --repo https://kubernetes.github.io/ingress-nginx \
+      --namespace ingress-nginx --create-namespace \
+      --set controller.service.type=NodePort \
+      --set controller.service.nodePorts.http=5080 \
+      --set controller.service.nodePorts.https=5443 \
+      --set controller.ingressClassResource.default=true \
+      --set controller.config.worker-processes=2 \
+      --set controller.extraArgs.enable-ssl-passthrough=true
 
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
     BASEDOMAIN="jumpstarter.${IP}.nip.io"
