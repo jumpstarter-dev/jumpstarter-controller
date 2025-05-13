@@ -38,6 +38,12 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
     GRPC_ENDPOINT="grpc.${BASEDOMAIN}:5443"
     GRPC_ROUTER_HOSTNAME="router.${BASEDOMAIN}"
     GRPC_ROUTER_ENDPOINT="router.${BASEDOMAIN}:5443"
+
+    GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
+    GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:5443"
+
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.nodeport.enabled=true"
