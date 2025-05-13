@@ -1,13 +1,15 @@
+{{ range $k, $v := .Values.grpc.router }}
+---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-router
+    control-plane: controller-router-{{ $k }}
     app.kubernetes.io/name: jumpstarter-controller
-  name: jumpstarter-router-grpc
-  namespace: {{ default .Release.Namespace .Values.namespace }}
+  name: jumpstarter-router-grpc-{{ $k }}
+  namespace: {{ default $.Release.Namespace $.Values.namespace }}
 spec:
-  {{ if .Values.grpc.nodeport.enabled }}
+  {{ if $.Values.grpc.nodeport.enabled }}
   type: NodePort
   {{ end }}
 
@@ -17,8 +19,9 @@ spec:
     protocol: TCP
     targetPort: 8083
     appProtocol: h2c # HTTP/2 over cleartext for gRPC (fixes edge termination in ingress/router)
-    {{ if .Values.grpc.nodeport.enabled }}
-    nodePort: {{ .Values.grpc.nodeport.routerPort }}
+    {{ if $.Values.grpc.nodeport.enabled }}
+    nodePort: {{ $v.nodeport }}
     {{ end }}
   selector:
-    control-plane: controller-router
+    control-plane: controller-router-{{ $k }}
+{{ end }}
