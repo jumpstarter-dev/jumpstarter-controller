@@ -218,8 +218,6 @@ func main() {
 	}
 
 	if err = (&service.RouterService{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
 		ServerOption: option,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Router")
