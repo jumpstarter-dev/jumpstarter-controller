@@ -39,9 +39,9 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
 
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
     BASEDOMAIN="jumpstarter.${IP}.nip.io"
-    GRPC_ENDPOINT="grpc.${BASEDOMAIN}:5080"
+    GRPC_ENDPOINT="grpc.${BASEDOMAIN}:5443"
     GRPC_ROUTER_HOSTNAME="router.${BASEDOMAIN}"
-    GRPC_ROUTER_ENDPOINT="router.${BASEDOMAIN}:5080"
+    GRPC_ROUTER_ENDPOINT="router.${BASEDOMAIN}:5443"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.nodeport.enabled=true"
