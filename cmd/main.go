@@ -217,13 +217,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&service.RouterService{
-		ServerOption: option,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create service", "service", "Router")
-		os.Exit(1)
-	}
-
 	if err = (&service.OIDCService{
 		Signer: oidcSigner,
 		Cert:   oidcCert,
