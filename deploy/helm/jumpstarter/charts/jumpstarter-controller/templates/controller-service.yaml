@@ -7,9 +7,7 @@ metadata:
   name: jumpstarter-grpc
   namespace: {{ default .Release.Namespace .Values.namespace }}
 spec:
-  {{ if .Values.grpc.nodeport.enabled }}
-  type: NodePort
-  {{ end }}
+  type: {{ $.Values.grpc.service.type }}
 
   ports:
   - name: grpc
@@ -17,8 +15,8 @@ spec:
     protocol: TCP
     targetPort: 8082
     appProtocol: h2c # HTTP/2 over cleartext for gRPC (fixes edge termination in ingress/router)
-    {{ if .Values.grpc.nodeport.enabled }}
-    nodePort: {{ .Values.grpc.nodeport.port }}
+    {{ if .Values.grpc.service.nodePort }}
+    nodePort: {{ .Values.grpc.service.nodePort }}
     {{ end }}
   selector:
     control-plane: controller-manager

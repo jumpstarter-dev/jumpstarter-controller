@@ -1,4 +1,5 @@
-{{ if eq .Values.grpc.mode "route" }}
+{{ if .Values.grpc.route }}
+{{ if .Values.grpc.route.enabled }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -31,4 +32,5 @@ spec:
     name: jumpstarter-grpc
     weight: 100
   wildcardPolicy: None
+{{ end }}
 {{ end }}

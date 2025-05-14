@@ -105,6 +105,15 @@
         "endpoint": {
           "type": "string"
         },
+        "ingress": {
+          "$ref": "#/$defs/ingress"
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "service": {
+          "$ref": "#/$defs/service"
+        },
         "router": {
           "type": "object",
           "additionalProperties": {

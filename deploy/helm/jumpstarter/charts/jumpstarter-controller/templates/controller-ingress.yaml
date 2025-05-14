@@ -1,4 +1,5 @@
-{{ if eq .Values.grpc.mode "ingress" }}
+{{ if .Values.grpc.ingress }}
+{{ if .Values.grpc.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -41,4 +42,5 @@ spec:
     {{ if .Values.grpc.tls.controllerCertSecret }}
     secretName: {{ .Values.grpc.tls.controllerCertSecret }}
     {{ end }}
+{{ end }}
 {{ end }}
