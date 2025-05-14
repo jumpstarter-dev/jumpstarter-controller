@@ -6,6 +6,57 @@
       "minimum": 0,
       "maximum": 65535
     },
+    "ClusterIP": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "ClusterIP"
+        }
+      }
+    },
+    "NodePort": {
+      "type": "object",
+      "required": [
+        "type",
+        "nodePort"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "NodePort"
+        },
+        "nodePort": {
+          "$ref": "#/$defs/port"
+        }
+      }
+    },
+    "service": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ClusterIP"
+        },
+        {
+          "$ref": "#/$defs/NodePort"
+        }
+      ]
+    },
+    "ingress": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "class": {
+        "type": "string"
+      }
+    },
+    "route": {
+      "enabled": {
+        "type": "boolean"
+      }
+    },
     "router": {
       "type": "object",
       "required": [
@@ -21,49 +72,13 @@
           "type": "string"
         },
         "ingress": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "class": {
-            "type": "string"
-          }
+          "$ref": "#/$defs/ingress"
         },
         "route": {
-          "enabled": {
-            "type": "boolean"
-          }
+          "$ref": "#/$defs/route"
         },
         "service": {
-          "oneOf": [
-            {
-              "type": "object",
-              "required": [
-                "type"
-              ],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "const": "ClusterIP"
-                }
-              }
-            },
-            {
-              "type": "object",
-              "required": [
-                "type",
-                "nodePort"
-              ],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "const": "NodePort"
-                },
-                "nodePort": {
-                  "$ref": "#/$defs/port"
-                }
-              }
-            }
-          ]
+          "$ref": "#/$defs/service"
         }
       }
     }
