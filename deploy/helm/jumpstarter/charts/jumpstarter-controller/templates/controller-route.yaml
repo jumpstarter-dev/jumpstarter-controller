@@ -12,11 +12,7 @@ metadata:
   name: jumpstarter-controller-route
   namespace: {{ default .Release.Namespace .Values.namespace }}
 spec:
-  {{ if .Values.grpc.hostname }}
-  host: {{ .Values.grpc.hostname }}
-  {{ else }}
-  host: grpc.{{ .Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided"}}
-  {{ end }}
+  host: {{ include "grpc.hostname" . }}
   port:
     targetPort: 8082
   tls:

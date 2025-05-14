@@ -18,11 +18,7 @@ spec:
   ingressClassName: {{ .Values.grpc.ingress.class }}
   {{ end }}
   rules:
-  {{ if .Values.grpc.hostname }}
-  - host: {{ .Values.grpc.hostname }}
-  {{ else }}
-  - host: grpc.{{ .Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided"}}
-  {{ end }}
+  - host: {{ include "grpc.hostname" . }}
     http:
       paths:
       - path: /
@@ -34,11 +30,7 @@ spec:
               number: 8082
   tls:
   - hosts:
-      {{ if .Values.grpc.hostname }}
-      - {{ .Values.grpc.hostname }}
-      {{ else }}
-      - grpc.{{ .Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided"}}
-      {{ end }}
+      - {{ include "grpc.hostname" . }}
     {{ if .Values.grpc.tls.controllerCertSecret }}
     secretName: {{ .Values.grpc.tls.controllerCertSecret }}
     {{ end }}

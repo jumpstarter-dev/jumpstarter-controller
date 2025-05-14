@@ -1,0 +1,7 @@
+{{- define "grpc.hostname" -}}
+  {{- if .Values.grpc.hostname -}}
+    {{ .Values.grpc.hostname }}
+  {{- else -}}
+    grpc.{{ .Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided" }}
+  {{- end -}}
+{{- end -}}

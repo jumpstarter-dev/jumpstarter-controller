@@ -89,7 +89,6 @@
   "required": [
     "image"
   ],
-  "additionalProperties": false,
   "properties": {
     "namespace": {
       "type": "string"
@@ -100,12 +99,17 @@
     "tag": {
       "type": "string"
     },
+    "global": {
+      "properties": {
+        "baseDomain": {
+          "type": "string"
+        }
+      }
+    },
     "grpc": {
       "required": [
-        "hostname",
         "endpoint"
       ],
-      "additionalProperties": false,
       "properties": {
         "hostname": {
           "type": "string"
