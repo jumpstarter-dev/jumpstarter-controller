@@ -33,38 +33,50 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
       --set controller.config.worker-processes=2 \
       --set controller.extraArgs.enable-ssl-passthrough=true
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
     BASEDOMAIN="jumpstarter.${IP}.nip.io"
     GRPC_ENDPOINT="grpc.${BASEDOMAIN}:5443"
-    GRPC_ROUTER_HOSTNAME="router.${BASEDOMAIN}"
-    GRPC_ROUTER_ENDPOINT="router.${BASEDOMAIN}:5443"
 
+    GRPC_ROUTER_DEFAULT_HOSTNAME="router.${BASEDOMAIN}"
+    GRPC_ROUTER_DEFAULT_ENDPOINT="router.${BASEDOMAIN}:5443"
     GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
     GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:5443"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.labels.name=default"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=ClusterIP"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=ClusterIP"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.labels.name=another"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.nodeport.enabled=true"
+
     BASEDOMAIN="jumpstarter.${IP}.nip.io"
     GRPC_ENDPOINT="grpc.${BASEDOMAIN}:8082"
-    GRPC_ROUTER_HOSTNAME="router.${BASEDOMAIN}"
-    GRPC_ROUTER_ENDPOINT="router.${BASEDOMAIN}:8083"
+
+    GRPC_ROUTER_DEFAULT_HOSTNAME="router.${BASEDOMAIN}"
+    GRPC_ROUTER_DEFAULT_ENDPOINT="router.${BASEDOMAIN}:8083"
+    GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
+    GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:8084"
+
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.service.type=NodePort"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.service.nodePort=30010"
+
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=NodePort"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.nodePort=30011"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=NodePort"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.nodePort=30012"
 fi
 
 HELM_SETS="${HELM_SETS} --set global.baseDomain=${BASEDOMAIN}"
 HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.endpoint=${GRPC_ENDPOINT}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.hostname=${GRPC_ROUTER_HOSTNAME}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_ROUTER_ENDPOINT}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=ClusterIP"
 
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.hostname=${GRPC_ROUTER_DEFAULT_HOSTNAME}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_ROUTER_DEFAULT_ENDPOINT}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
+
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.labels.router-name=default"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.labels.router-name=another"
 
 IMAGE_REPO=$(echo ${IMG} | cut -d: -f1)
 IMAGE_TAG=$(echo ${IMG} | cut -d: -f2)
@@ -118,7 +130,7 @@ helm ${METHOD} --namespace jumpstarter-lab \
 kubectl config set-context --current --namespace=jumpstarter-lab
 
 echo -e "${GREEN}Waiting for grpc endpoints to be ready:${NC}"
-for ep in ${GRPC_ENDPOINT} ${GRPC_ROUTER_ENDPOINT}; do
+for ep in ${GRPC_ENDPOINT} ${GRPC_ROUTER_DEFAULT_ENDPOINT} ${GRPC_ROUTER_ANOTHER_ENDPOINT}; do
     RETRIES=60
     echo -e "${GREEN} * Checking ${ep} ... ${NC}"
     while ! ${GRPCURL} -insecure ${ep} list; do
@@ -133,5 +145,6 @@ done
 
 
 echo -e "${GREEN}Jumpstarter controller deployed successfully!${NC}"
-echo -e " gRPC        endpoint: ${GRPC_ENDPOINT}"
-echo -e " gRPC router endpoint: ${GRPC_ROUTER_ENDPOINT}"
+echo -e " gRPC                endpoint: ${GRPC_ENDPOINT}"
+echo -e " gRPC router default endpoint: ${GRPC_ROUTER_DEFAULT_ENDPOINT}"
+echo -e " gRPC router another endpoint: ${GRPC_ROUTER_ANOTHER_ENDPOINT}"
