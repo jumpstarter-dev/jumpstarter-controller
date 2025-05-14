@@ -424,6 +424,8 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 		return nil, err
 	}
 
+	logger.Info("selected router", "endpoint", candidates[0].Endpoint, "labels", candidates[0].Labels)
+
 	endpoint := candidates[0].Endpoint
 
 	stream := k8suuid.NewUUID()
