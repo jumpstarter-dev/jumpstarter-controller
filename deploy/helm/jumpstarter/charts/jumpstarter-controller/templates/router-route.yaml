@@ -14,13 +14,7 @@ metadata:
   name: jumpstarter-router-route-{{ $k }}
   namespace: {{ default $.Release.Namespace $.Values.namespace }}
 spec:
-  {{ if $v.hostname }}
-  host: {{ $v.hostname }}
-  {{ else }}
-  host: router-{{ $k }}.{{
-    $.Values.global.baseDomain | required "A global.baseDomain or a grpc.router.<name>.hostname must be provided"
-  }}
-  {{ end }}
+  host: {{ include "router.hostname" (list $ $k $v) }}
   port:
     targetPort: 8083
   tls:

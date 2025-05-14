@@ -1,7 +1,18 @@
 {{- define "grpc.hostname" -}}
-  {{- if .Values.grpc.hostname -}}
-    {{ .Values.grpc.hostname }}
+  {{- if $.Values.grpc.hostname -}}
+    {{ $.Values.grpc.hostname }}
   {{- else -}}
-    grpc.{{ .Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided" }}
+    grpc.{{ $.Values.global.baseDomain | required "a global.baseDomain or a grpc.hostname must be provided" }}
+  {{- end -}}
+{{- end -}}
+
+{{- define "router.hostname" -}}
+  {{- $g := index . 0 -}}
+  {{- $k := index . 1 -}}
+  {{- $v := index . 2 -}}
+  {{- if $v.hostname -}}
+    {{ $v.hostname }}
+  {{- else -}}
+    router-{{ $k }}.{{ $g.Values.global.baseDomain | required "a global.baseDomain or a grpc.router.<name>.hostname must be provided" }}
   {{- end -}}
 {{- end -}}

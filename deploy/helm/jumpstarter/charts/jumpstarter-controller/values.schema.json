@@ -62,7 +62,6 @@
     "router": {
       "type": "object",
       "required": [
-        "hostname",
         "endpoint",
         "service"
       ],

@@ -20,13 +20,7 @@ spec:
   ingressClassName: {{ $v.ingress.class }}
   {{ end }}
   rules:
-  {{ if $v.hostname }}
-  - host: {{ $v.hostname }}
-  {{ else }}
-  - host: router-{{ $k }}.{{
-    $.Values.global.baseDomain | required "A global.baseDomain or a grpc.router.<name>.hostname must be provided"
-  }}
-  {{ end }}
+  - host: {{ include "router.hostname" (list $ $k $v) }}
     http:
       paths:
       - path: /
@@ -38,13 +32,7 @@ spec:
               number: 8083
   tls:
   - hosts:
-      {{ if $v.hostname }}
-      - {{ $v.hostname }}
-      {{ else }}
-      - router-{{ $k }}.{{
-        $.Values.global.baseDomain | required "A global.baseDomain or a grpc.router.<name>.hostname must be provided"
-      }}
-      {{ end }}
+      - {{ include "router.hostname" (list $ $k $v) }}
     {{ if $.Values.grpc.tls.routerCertSecret }}
     secretName: {{ $.Values.grpc.tls.routerCertSecret }}
     {{ end }}
