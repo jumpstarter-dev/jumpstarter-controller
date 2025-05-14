@@ -11,6 +11,7 @@
       "required": [
         "type"
       ],
+      "additionalProperties": false,
       "properties": {
         "type": {
           "type": "string",
@@ -24,6 +25,7 @@
         "type",
         "nodePort"
       ],
+      "additionalProperties": false,
       "properties": {
         "type": {
           "type": "string",
@@ -64,6 +66,7 @@
         "endpoint",
         "service"
       ],
+      "additionalProperties": false,
       "properties": {
         "hostname": {
           "type": "string"
@@ -86,6 +89,7 @@
   "required": [
     "image"
   ],
+  "additionalProperties": false,
   "properties": {
     "namespace": {
       "type": "string"
@@ -101,6 +105,7 @@
         "hostname",
         "endpoint"
       ],
+      "additionalProperties": false,
       "properties": {
         "hostname": {
           "type": "string"
