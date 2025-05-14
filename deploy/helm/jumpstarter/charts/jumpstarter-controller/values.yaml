@@ -1,3 +1,5 @@
+image: quay.io/jumpstarter-dev/jumpstarter-controller
+
 namespace: ""
 
 grpc:
@@ -19,6 +21,4 @@ grpc:
     enabled: false
     port: 30010
 
-image: quay.io/jumpstarter-dev/jumpstarter-controller
-tag: ""
 imagePullPolicy: IfNotPresent

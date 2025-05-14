@@ -1,6 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema#",
+  "required": [
+    "image"
+  ],
   "properties": {
+    "image": {
+      "type": "string"
+    },
+    "tag": {
+      "type": "string"
+    },
     "grpc": {
       "required": [
         "hostname",
@@ -19,7 +28,8 @@
             "type": "object",
             "required": [
               "hostname",
-              "endpoint"
+              "endpoint",
+              "service"
             ],
             "properties": {
               "hostname": {
@@ -28,10 +38,39 @@
               "endpoint": {
                 "type": "string"
               },
-              "nodeport": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 65535
+              "service": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "ClusterIP"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "nodePort"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "NodePort"
+                      },
+                      "nodePort": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65535
+                      }
+                    }
+                  }
+                ]
               }
             }
           }
