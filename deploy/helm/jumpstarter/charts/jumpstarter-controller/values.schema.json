@@ -1,5 +1,73 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema#",
+  "$defs": {
+    "port": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "router": {
+      "type": "object",
+      "required": [
+        "hostname",
+        "endpoint",
+        "service"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "ingress": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "class": {
+            "type": "string"
+          }
+        },
+        "route": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "service": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "ClusterIP"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nodePort"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "NodePort"
+                },
+                "nodePort": {
+                  "$ref": "#/$defs/port"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
   "required": [
     "image"
   ],
@@ -25,67 +93,7 @@
         "router": {
           "type": "object",
           "additionalProperties": {
-            "type": "object",
-            "required": [
-              "hostname",
-              "endpoint",
-              "service"
-            ],
-            "properties": {
-              "hostname": {
-                "type": "string"
-              },
-              "endpoint": {
-                "type": "string"
-              },
-              "ingress": {
-                "enabled": {
-                  "type": "boolean"
-                },
-                "class": {
-                  "type": "string"
-                }
-              },
-              "route": {
-                "enabled": {
-                  "type": "boolean"
-                }
-              },
-              "service": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "type"
-                    ],
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "ClusterIP"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "type",
-                      "nodePort"
-                    ],
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "NodePort"
-                      },
-                      "nodePort": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 65535
-                      }
-                    }
-                  }
-                ]
-              }
-            }
+            "$ref": "#/$defs/router"
           }
         }
       }
