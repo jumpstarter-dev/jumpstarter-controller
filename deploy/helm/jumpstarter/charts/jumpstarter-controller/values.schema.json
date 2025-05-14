@@ -87,6 +87,9 @@
     "image"
   ],
   "properties": {
+    "namespace": {
+      "type": "string"
+    },
     "image": {
       "type": "string"
     },
