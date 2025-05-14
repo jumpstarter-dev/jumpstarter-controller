@@ -16,6 +16,6 @@ data:
   authentication: {{- .Values.authenticationConfig | toYaml | indent 1 }}
   {{ end }}
   router: |
-{{ .Values.grpc.router | toYaml | indent 4 }}
+{{ .Values.grpc.routers | toYaml | indent 4 }}
   config: |
 {{ .Values.config | toYaml | indent 4 }}

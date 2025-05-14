@@ -117,7 +117,7 @@
         "service": {
           "$ref": "#/$defs/service"
         },
-        "router": {
+        "routers": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/router"

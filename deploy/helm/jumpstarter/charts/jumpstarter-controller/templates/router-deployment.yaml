@@ -1,4 +1,4 @@
-{{ range $k, $v := .Values.grpc.router }}
+{{ range $k, $v := .Values.grpc.routers }}
 ---
 apiVersion: apps/v1
 kind: Deployment
