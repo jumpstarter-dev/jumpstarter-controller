@@ -38,6 +38,22 @@
               "endpoint": {
                 "type": "string"
               },
+              "ingress": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "class": {
+                  "type": "string"
+                }
+              },
+              "route": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "class": {
+                  "type": "string"
+                }
+              },
               "service": {
                 "oneOf": [
                   {
