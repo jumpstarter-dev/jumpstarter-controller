@@ -6,6 +6,15 @@
       "minimum": 0,
       "maximum": 65535
     },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
     "ClusterIP": {
       "type": "object",
       "required": [
@@ -81,6 +90,9 @@
         },
         "service": {
           "$ref": "#/$defs/service"
+        },
+        "labels": {
+          "$ref": "#/$defs/labels"
         }
       }
     }
@@ -109,6 +121,7 @@
       "required": [
         "endpoint"
       ],
+      "additionalProperties": false,
       "properties": {
         "hostname": {
           "type": "string"
@@ -124,6 +137,34 @@
         },
         "service": {
           "$ref": "#/$defs/service"
+        },
+        "tls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "controllerCertSecret": {
+              "type": "string"
+            },
+            "routerCertSecret": {
+              "type": "string"
+            },
+            "port": {
+              "$ref": "#/$defs/port"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "passthrough",
+                "reencrypt"
+              ]
+            }
+          }
         },
         "routers": {
           "type": "object",

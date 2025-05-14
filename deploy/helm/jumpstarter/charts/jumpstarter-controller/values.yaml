@@ -4,8 +4,4 @@ grpc:
   service:
     type: ClusterIP
 
-  tls:
-    enabled: false
-    secret: ""
-
 imagePullPolicy: IfNotPresent
