@@ -6,6 +6,14 @@
   {{- end -}}
 {{- end -}}
 
+{{- define "grpc.endpoint" -}}
+  {{- if $.Values.grpc.endpoint -}}
+    {{ $.Values.grpc.endpoint }}
+  {{- else -}}
+    {{ include "grpc.hostname" $ }}:{{ $.Values.grpc.tls.port }}
+  {{- end -}}
+{{- end -}}
+
 {{- define "router.hostname" -}}
   {{- $g := index . 0 -}}
   {{- $k := index . 1 -}}
@@ -14,5 +22,16 @@
     {{ $v.hostname }}
   {{- else -}}
     router-{{ $k }}.{{ $g.Values.global.baseDomain | required "a global.baseDomain or a grpc.router.<name>.hostname must be provided" }}
+  {{- end -}}
+{{- end -}}
+
+{{- define "router.endpoint" -}}
+  {{- $g := index . 0 -}}
+  {{- $k := index . 1 -}}
+  {{- $v := index . 2 -}}
+  {{- if $v.endpoint -}}
+    {{ $v.endpoint }}
+  {{- else -}}
+    {{ include "router.hostname" . }}:{{ $g.Values.grpc.tls.port }}
   {{- end -}}
 {{- end -}}

@@ -58,13 +58,7 @@ spec:
           - -metrics-bind-address=:8080
         env:
         - name: GRPC_ENDPOINT
-          {{ if .Values.grpc.endpoint }}
-          value : {{ .Values.grpc.endpoint }}
-          {{ else if .Values.hostname }}
-          value: {{ .Values.hostname }}:{{ .Values.grpc.tls.port }}
-          {{ else }}
-          value: grpc.{{ .Values.global.baseDomain }}:{{ .Values.grpc.tls.port }}
-          {{ end }}
+          value : {{ include "grpc.endpoint" . }}
         - name: CONTROLLER_KEY
           valueFrom:
             secretKeyRef:
