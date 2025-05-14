@@ -71,7 +71,6 @@
     "router": {
       "type": "object",
       "required": [
-        "endpoint",
         "service"
       ],
       "additionalProperties": false,
@@ -120,9 +119,6 @@
       }
     },
     "grpc": {
-      "required": [
-        "endpoint"
-      ],
       "additionalProperties": false,
       "properties": {
         "hostname": {

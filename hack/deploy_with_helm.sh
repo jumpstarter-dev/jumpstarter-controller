@@ -43,11 +43,13 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
     GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:5443"
 
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.labels.name=default"
 
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=ClusterIP"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.labels.name=another"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.nodeport.enabled=true"
