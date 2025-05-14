@@ -1,5 +1,6 @@
-{{ if eq .Values.grpc.mode "route" }}
 {{ range $k, $v := .Values.grpc.router }}
+{{ if $v.route }}
+{{ if $v.route.enabled }}
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -40,5 +41,6 @@ spec:
     name: jumpstarter-router-grpc-{{ $k }}
     weight: 100
   wildcardPolicy: None
+{{ end }}
 {{ end }}
 {{ end }}

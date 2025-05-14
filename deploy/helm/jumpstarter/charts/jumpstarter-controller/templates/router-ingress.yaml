@@ -1,5 +1,6 @@
-{{ if eq .Values.grpc.mode "ingress" }}
 {{ range $k, $v := .Values.grpc.router }}
+{{ if $v.ingress }}
+{{ if $v.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -15,8 +16,8 @@ metadata:
   name: jumpstarter-router-ingress-{{ $k }}
   namespace: {{ default $.Release.Namespace $.Values.namespace }}
 spec:
-  {{ if $.Values.grpc.ingress.class }}
-  ingressClassName: {{ $.Values.grpc.ingress.class }}
+  {{ if $v.ingress.class }}
+  ingressClassName: {{ $v.ingress.class }}
   {{ end }}
   rules:
   {{ if $v.hostname }}
@@ -47,5 +48,6 @@ spec:
     {{ if $.Values.grpc.tls.routerCertSecret }}
     secretName: {{ $.Values.grpc.tls.routerCertSecret }}
     {{ end }}
+{{ end }}
 {{ end }}
 {{ end }}

@@ -49,9 +49,6 @@
               "route": {
                 "enabled": {
                   "type": "boolean"
-                },
-                "class": {
-                  "type": "string"
                 }
               },
               "service": {
