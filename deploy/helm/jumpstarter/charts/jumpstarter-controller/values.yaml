@@ -1,18 +1,6 @@
 namespace: ""
 
 grpc:
-  hostname: ""
-
-  # the endpoints are passed down to the service to know where
-  # to announce the endpoints to the clients
-  endpoint: ""
-
-  router:
-    default:
-      endpoint: ""
-      hostname: ""
-      nodeport: 30011
-
   tls:
     enabled: false
     secret: ""

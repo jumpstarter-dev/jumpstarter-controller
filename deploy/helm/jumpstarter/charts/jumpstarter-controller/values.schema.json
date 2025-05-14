@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "properties": {
+    "grpc": {
+      "required": [
+        "hostname",
+        "endpoint"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "router": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "hostname",
+              "endpoint"
+            ],
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "endpoint": {
+                "type": "string"
+              },
+              "nodeport": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
