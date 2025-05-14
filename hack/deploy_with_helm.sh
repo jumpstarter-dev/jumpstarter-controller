@@ -42,8 +42,12 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
     GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
     GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:5443"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
+
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=ClusterIP"
+    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.nodeport.enabled=true"
@@ -55,8 +59,9 @@ fi
 
 HELM_SETS="${HELM_SETS} --set global.baseDomain=${BASEDOMAIN}"
 HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.endpoint=${GRPC_ENDPOINT}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.default.hostname=${GRPC_ROUTER_HOSTNAME}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.router.default.endpoint=${GRPC_ROUTER_ENDPOINT}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.hostname=${GRPC_ROUTER_HOSTNAME}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_ROUTER_ENDPOINT}"
+HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=ClusterIP"
 
 
 IMAGE_REPO=$(echo ${IMG} | cut -d: -f1)

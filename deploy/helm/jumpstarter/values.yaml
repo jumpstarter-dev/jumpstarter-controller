@@ -100,20 +100,8 @@ jumpstarter-controller:
         #       prefix: "kubernetes:"
 
     grpc:
-      hostname: ""
-
-      endpoint: ""
-
-      router:
-        default:
-          endpoint: ""
-          hostname: ""
-          nodeport: 30011
-
       tls:
         mode: "passthrough"
         port: 443
         routerCertSecret: ""
         controllerCertSecret: ""
-
-      mode: "route" # route or ingress
