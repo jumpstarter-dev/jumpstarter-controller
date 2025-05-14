@@ -17,14 +17,18 @@ limitations under the License.
 package service
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/exp/maps"
 
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
@@ -396,6 +400,32 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 		return nil, err
 	}
 
+	if lease.Status.ExporterRef == nil {
+		err := fmt.Errorf("lease not active")
+		logger.Error(err, "unable to get exporter referenced by lease")
+		return nil, err
+	}
+
+	var exporter jumpstarterdevv1alpha1.Exporter
+	if err := s.Client.Get(ctx,
+		types.NamespacedName{Namespace: client.Namespace, Name: lease.Status.ExporterRef.Name}, &exporter); err != nil {
+		logger.Error(err, "unable to get exporter referenced by lease")
+		return nil, err
+	}
+
+	candidates := maps.Values(s.Router)
+	slices.SortFunc(candidates, func(a config.RouterEntry, b config.RouterEntry) int {
+		return -cmp.Compare(MatchLabels(a.Labels, exporter.Labels), MatchLabels(b.Labels, exporter.Labels))
+	})
+
+	if len(candidates) == 0 {
+		err := fmt.Errorf("no router available")
+		logger.Error(err, "no router available")
+		return nil, err
+	}
+
+	endpoint := candidates[0].Endpoint
+
 	stream := k8suuid.NewUUID()
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
@@ -411,20 +441,6 @@ func (s *ControllerService) Dial(ctx context.Context, req *pb.DialRequest) (*pb.
 	if err != nil {
 		logger.Error(err, "unable to sign token")
 		return nil, status.Errorf(codes.Internal, "unable to sign token")
-	}
-
-	var endpoint string
-	// Current go map implementation guarantees a random ordering
-	for name, v := range s.Router {
-		endpoint = v.Endpoint
-		logger.Info("selected router", "name", name, "endpoint", endpoint)
-		break
-	}
-
-	if endpoint == "" {
-		err := fmt.Errorf("no router available")
-		logger.Error(err, "no router available")
-		return nil, err
 	}
 
 	response := &pb.ListenResponse{
