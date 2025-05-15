@@ -14,6 +14,14 @@
   {{- end -}}
 {{- end -}}
 
+{{- define "grpc.service.type" -}}
+  {{- if $.Values.grpc.service -}}
+    {{ $.Values.grpc.service.type | default "ClusterIP" }}
+  {{- else -}}
+    ClusterIP
+  {{- end -}}
+{{- end -}}
+
 {{- define "router.hostname" -}}
   {{- $g := index . 0 -}}
   {{- $k := index . 1 -}}

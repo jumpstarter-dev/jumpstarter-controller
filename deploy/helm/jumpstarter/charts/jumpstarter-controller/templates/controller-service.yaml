@@ -7,7 +7,7 @@ metadata:
   name: jumpstarter-grpc
   namespace: {{ default .Release.Namespace .Values.namespace }}
 spec:
-  type: {{ $.Values.grpc.service.type }}
+  type: {{ include "grpc.service.type" . }}
 
   ports:
   - name: grpc
