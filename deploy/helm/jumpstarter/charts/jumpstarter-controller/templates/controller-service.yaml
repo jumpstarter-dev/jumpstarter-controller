@@ -15,8 +15,10 @@ spec:
     protocol: TCP
     targetPort: 8082
     appProtocol: h2c # HTTP/2 over cleartext for gRPC (fixes edge termination in ingress/router)
+    {{ if .Values.grpc.service }}
     {{ if .Values.grpc.service.nodePort }}
     nodePort: {{ .Values.grpc.service.nodePort }}
+    {{ end }}
     {{ end }}
   selector:
     control-plane: controller-manager

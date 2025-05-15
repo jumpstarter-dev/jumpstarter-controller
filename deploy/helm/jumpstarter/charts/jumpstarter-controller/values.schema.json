@@ -67,9 +67,6 @@
     },
     "router": {
       "type": "object",
-      "required": [
-        "service"
-      ],
       "additionalProperties": false,
       "properties": {
         "hostname": {
