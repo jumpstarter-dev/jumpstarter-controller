@@ -35,3 +35,14 @@
     {{ include "router.hostname" . }}:{{ $g.Values.grpc.tls.port }}
   {{- end -}}
 {{- end -}}
+
+{{- define "router.service.type" -}}
+  {{- $g := index . 0 -}}
+  {{- $k := index . 1 -}}
+  {{- $v := index . 2 -}}
+  {{- if $v.service -}}
+    {{ $v.service.type | default "ClusterIP" }}
+  {{- else -}}
+    ClusterIP
+  {{- end -}}
+{{- end -}}

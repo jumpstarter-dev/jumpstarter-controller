@@ -43,9 +43,7 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
 
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=ClusterIP"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=ClusterIP"
     HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"

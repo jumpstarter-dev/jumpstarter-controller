@@ -17,9 +17,6 @@
     },
     "ClusterIP": {
       "type": "object",
-      "required": [
-        "type"
-      ],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -46,7 +43,7 @@
       }
     },
     "service": {
-      "oneOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/ClusterIP"
         },

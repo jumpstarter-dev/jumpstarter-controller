@@ -9,7 +9,7 @@ metadata:
   name: jumpstarter-router-grpc-{{ $k }}
   namespace: {{ default $.Release.Namespace $.Values.namespace }}
 spec:
-  type: {{ $v.service.type }}
+  type: {{ include "router.service.type" (list $ $k $v) }}
 
   ports:
   - name: grpc
