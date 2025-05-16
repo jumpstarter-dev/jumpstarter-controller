@@ -5,16 +5,12 @@
 ##
 ## @param global.baseDomain Base domain to construct the FQDN for the service endpoints.
 ## @param global.namespace Namespace where the components will be deployed.
-## @param global.storageClassName Storage class name for the PVCs.
-## @param global.storageClassNameRWM Storage class name for multiple reader/writer PVCs.
 ## @param global.metrics.enabled Enable metrics exporting and service
 ## @param global.timestamp Timestamp to be used to trigger a new deployment, i.e. if you want pods to be restarted and pickup ":latest"
 
 global:
   baseDomain: jumpstarter.my.domain.com
   namespace: jumpstarter-lab
-  storageClassName: standard
-  storageClassNameRWM: standard
   metrics:
       enabled: false
   timestamp: "" # can be used to timestamp deployments and make them reload

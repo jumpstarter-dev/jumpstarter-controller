@@ -91,10 +91,17 @@
     }
   },
   "required": [
-    "image"
+    "image",
+    "imagePullPolicy"
   ],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "config": {
+      "type": "object"
+    },
     "namespace": {
       "type": "string"
     },
@@ -104,11 +111,22 @@
     "tag": {
       "type": "string"
     },
+    "imagePullPolicy": {
+      "type": "string"
+    },
     "global": {
       "additionalProperties": true,
       "properties": {
         "baseDomain": {
           "type": "string"
+        },
+        "metrics": {
+          "types": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
