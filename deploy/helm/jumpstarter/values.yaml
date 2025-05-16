@@ -1,15 +1,6 @@
-## @section Global parameters
-## @descriptionStart This section contains parameters common to all the
-## components in the deployment.
-## @descriptionEnd
-##
-## @param global.namespace Namespace where the components will be deployed.
-## @param global.metrics.enabled Enable metrics exporting and service
-## @param global.timestamp Timestamp to be used to trigger a new deployment, i.e. if you want pods to be restarted and pickup ":latest"
-
 global:
-  baseDomain: jumpstarter.my.domain.com
   namespace: jumpstarter-lab
+  timestamp: ""
+  baseDomain: example.com
   metrics:
       enabled: false
-  timestamp: "" # can be used to timestamp deployments and make them reload
