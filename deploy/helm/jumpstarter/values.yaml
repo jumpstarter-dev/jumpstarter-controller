@@ -13,7 +13,3 @@ global:
   metrics:
       enabled: false
   timestamp: "" # can be used to timestamp deployments and make them reload
-
-## @param jumpstarter-controller.namespace Namespace where the controller will be deployed, defaults to global.namespace.
-## @param jumpstarter-controller.grpc.tls.mode Setup the TLS mode for endpoints, either "passthrough" or "reencrypt".
-## @param jumpstarter-controller.grpc.tls.port Port to use for the gRPC endpoints ingress or route, this can be useful for ingress routers on non-standard ports.

@@ -280,7 +280,8 @@
       }
     },
     "namespace": {
-      "type": "string"
+      "type": "string",
+      "description": "Namespace where the controller will be deployed, defaults to global.namespace"
     },
     "image": {
       "type": "string",
@@ -352,10 +353,12 @@
               "description": "Secret containing the TLS certificate/key for the gRPC router endpoints"
             },
             "port": {
-              "$ref": "#/$defs/port"
+              "$ref": "#/$defs/port",
+              "description": "Port to use for the gRPC endpoints Ingress or Route, this can be useful for ingress routers on non-standard ports"
             },
             "mode": {
               "type": "string",
+              "description": "TLS mode for gRPC endpoints",
               "enum": [
                 "passthrough",
                 "reencrypt"
