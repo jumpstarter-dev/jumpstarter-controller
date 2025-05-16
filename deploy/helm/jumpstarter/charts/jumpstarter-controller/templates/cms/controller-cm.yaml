@@ -15,5 +15,14 @@ data:
   {{ if .Values.authenticationConfig }}
   authentication: {{- .Values.authenticationConfig | toYaml | indent 1 }}
   {{ end }}
+  router: |
+  {{ range $k, $v := .Values.grpc.routers }}
+    {{ $k }}:
+      endpoint: {{ include "router.endpoint" (list $ $k $v) }}
+      {{ if $v.labels }}
+      labels:
+        {{ $v.labels | toYaml | indent 1 }}
+      {{ end }}
+  {{ end }}
   config: |
 {{ .Values.config | toYaml | indent 4 }}
