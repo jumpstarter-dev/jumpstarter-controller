@@ -93,6 +93,132 @@
           "$ref": "#/$defs/labels"
         }
       }
+    },
+    "PrefixedClaimOrExpression": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        }
+      }
+    },
+    "ClaimOrExpression": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        }
+      }
+    },
+    "JWTAuthenticator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issuer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "discoveryURL": {
+              "type": "string"
+            },
+            "certificateAuthority": {
+              "type": "string"
+            },
+            "audiences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "audienceMatchPolicy": {
+              "type": "string",
+              "enum": [
+                "MatchAny"
+              ]
+            }
+          }
+        },
+        "claimValidationRules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "claim": {
+                "type": "string"
+              },
+              "requiredValue": {
+                "type": "string"
+              },
+              "expression": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "claimMappings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "username": {
+              "$ref": "#/$defs/PrefixedClaimOrExpression"
+            },
+            "groups": {
+              "$ref": "#/$defs/PrefixedClaimOrExpression"
+            },
+            "uid": {
+              "$ref": "#/$defs/ClaimOrExpression"
+            },
+            "extra": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "valueExpression": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "userValidationRules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expression": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "required": [
@@ -106,7 +232,52 @@
       "description": "Whether to enable jumpstarter controller"
     },
     "config": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authentication": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "internal": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "prefix": {
+                  "type": "string"
+                }
+              }
+            },
+            "jwt": {
+              "type": "array",
+              "description": "External OIDC authentication, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration for documentation",
+              "items": {
+                "$ref": "#/$defs/JWTAuthenticator"
+              }
+            }
+          }
+        },
+        "grpc": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keepalive": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "minTime": {
+                  "type": "string",
+                  "description": "The minimum amount of time a client should wait before sending a keepalive ping"
+                },
+                "permitWithoutStream": {
+                  "type": "boolean",
+                  "description": "Whether to allow keepalive pings even when there are no active streams(RPCs)"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "namespace": {
       "type": "string"
