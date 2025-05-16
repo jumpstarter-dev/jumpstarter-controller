@@ -54,15 +54,18 @@
     },
     "ingress": {
       "enabled": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether to enable Ingress for the gRPC endpoint"
       },
       "class": {
-        "type": "string"
+        "type": "string",
+        "description": "IngressClass to use for the gRPC endpoint"
       }
     },
     "route": {
       "enabled": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether to enable OpenShift Router for the gRPC endpoint"
       }
     },
     "router": {
@@ -70,10 +73,12 @@
       "additionalProperties": false,
       "properties": {
         "hostname": {
-          "type": "string"
+          "type": "string",
+          "description": "Hostname for the gRPC router endpoint selfsigned certificates"
         },
         "endpoint": {
-          "type": "string"
+          "type": "string",
+          "description": "Endpoint to advertise for the gRPC router endpoint"
         },
         "ingress": {
           "$ref": "#/$defs/ingress"
@@ -97,7 +102,8 @@
   "additionalProperties": false,
   "properties": {
     "enabled": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether to enable jumpstarter controller"
     },
     "config": {
       "type": "object"
@@ -106,19 +112,25 @@
       "type": "string"
     },
     "image": {
-      "type": "string"
+      "type": "string",
+      "description": "Image for the controller"
     },
     "tag": {
-      "type": "string"
+      "type": "string",
+      "description": "Image tag for the controller"
     },
     "imagePullPolicy": {
-      "type": "string"
+      "type": "string",
+      "description": "Image pull policy for the controller"
     },
     "global": {
+      "type": "object",
+      "description": "Global parameters",
       "additionalProperties": true,
       "properties": {
         "baseDomain": {
-          "type": "string"
+          "type": "string",
+          "description": "Base domain to construct the FQDN for the service endpoints"
         },
         "metrics": {
           "types": "object",
@@ -134,10 +146,12 @@
       "additionalProperties": false,
       "properties": {
         "hostname": {
-          "type": "string"
+          "type": "string",
+          "description": "Hostname for the gRPC controller endpoint selfsigned certificates"
         },
         "endpoint": {
-          "type": "string"
+          "type": "string",
+          "description": "Endpoint to advertise for the gRPC controller endpoint"
         },
         "ingress": {
           "$ref": "#/$defs/ingress"
@@ -159,10 +173,12 @@
               "type": "string"
             },
             "controllerCertSecret": {
-              "type": "string"
+              "type": "string",
+              "description": "Secret containing the TLS certificate/key for the gRPC controller endpoint"
             },
             "routerCertSecret": {
-              "type": "string"
+              "type": "string",
+              "description": "Secret containing the TLS certificate/key for the gRPC router endpoints"
             },
             "port": {
               "$ref": "#/$defs/port"
