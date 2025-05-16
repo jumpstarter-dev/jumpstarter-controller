@@ -4,3 +4,6 @@ global:
   baseDomain: example.com
   metrics:
       enabled: false
+
+jumpstarter-controller:
+  enabled: true
