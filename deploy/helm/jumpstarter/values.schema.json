@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "jumpstarter-controller": {
+      "type": "object"
+    },
+    "global": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Namespace where the components will be deployed"
+        },
+        "timestamp": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "Timestamp to be used to trigger a new deployment, i.e. if you want pods to be restarted and pickup the latest tag"
+        },
+        "baseDomain": {
+          "type": "string",
+          "description": "Base domain to construct the FQDN for the service endpoints"
+        },
+        "metrics": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether to enable metrics exporting and service"
+            }
+          }
+        }
+      }
+    }
+  }
+}
