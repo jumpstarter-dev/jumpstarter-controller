@@ -29,8 +29,10 @@ nodes:
   - containerPort: 30012 # grpc router another nodeport
     hostPort: 8084
     protocol: TCP
+  - containerPort: 32000 # dex OIDC
+    hostPort: 5556
+    protocol: TCP
 # if we needed to mount a hostPath volume into the kind cluster, we can do it like this
 #  extraMounts:
 #  - hostPath: ./bin/e2e-certs
 #    containerPath: /tmp/e2e-certs
-  
