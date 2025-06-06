@@ -72,8 +72,8 @@ HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_R
 HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
 HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
 
-HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.labels.router-name=default"
-HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.labels.router-name=another"
+# HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.labels.router-name=default"
+# HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.labels.router-name=another"
 
 IMAGE_REPO=$(echo ${IMG} | cut -d: -f1)
 IMAGE_TAG=$(echo ${IMG} | cut -d: -f2)
