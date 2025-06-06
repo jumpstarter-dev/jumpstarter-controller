@@ -58,7 +58,7 @@ spec:
           - /router
         env:
         - name: GRPC_ROUTER_ENDPOINT
-          value: {{ include "router.endpoint" (list $ $k $v) }}
+          value: {{ include "router.endpoint" (list $ $k $v) | quote }}
         - name: ROUTER_KEY
           valueFrom:
             secretKeyRef:

@@ -18,7 +18,7 @@ data:
   router: |
   {{ range $k, $v := .Values.grpc.routers }}
     {{ $k }}:
-      endpoint: {{ include "router.endpoint" (list $ $k $v) }}
+      endpoint: {{ include "router.endpoint" (list $ $k $v) | quote }}
       {{ if $v.labels }}
       labels:
         {{ $v.labels | toYaml | indent 1 }}

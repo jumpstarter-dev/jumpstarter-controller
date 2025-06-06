@@ -58,7 +58,7 @@ spec:
           - -metrics-bind-address=:8080
         env:
         - name: GRPC_ENDPOINT
-          value : {{ include "grpc.endpoint" . }}
+          value : {{ include "grpc.endpoint" . | quote }}
         - name: CONTROLLER_KEY
           valueFrom:
             secretKeyRef:
