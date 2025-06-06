@@ -16,7 +16,6 @@ IP=$("${SCRIPT_DIR}"/get_ext_ip.sh)
 
 kubectl config use-context kind-jumpstarter
 
-HELM_SETS=""
 if [ "${INGRESS_ENABLED}" == "true" ]; then
     echo -e "${GREEN}Deploying nginx ingress in kind ...${NC}"
 
@@ -41,10 +40,10 @@ if [ "${INGRESS_ENABLED}" == "true" ]; then
     GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
     GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:5443"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.ingress.enabled=true"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.ingress.enabled=true"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.ingress.enabled=true"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.ingress.enabled=true"
 else
     echo -e "${GREEN}Deploying with nodeport ...${NC}"
 
@@ -56,30 +55,30 @@ else
     GRPC_ROUTER_ANOTHER_HOSTNAME="router-another.${BASEDOMAIN}"
     GRPC_ROUTER_ANOTHER_ENDPOINT="router-another.${BASEDOMAIN}:8084"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.service.type=NodePort"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.service.nodePort=30010"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.service.type=NodePort"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.service.nodePort=30010"
 
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.type=NodePort"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.service.nodePort=30011"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.type=NodePort"
-    HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.service.nodePort=30012"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.service.type=NodePort"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.service.nodePort=30011"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.service.type=NodePort"
+    HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.service.nodePort=30012"
 fi
 
-HELM_SETS="${HELM_SETS} --set global.baseDomain=${BASEDOMAIN}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.endpoint=${GRPC_ENDPOINT}"
+HELM_SETS+=" --set global.baseDomain=${BASEDOMAIN}"
+HELM_SETS+=" --set jumpstarter-controller.grpc.endpoint=${GRPC_ENDPOINT}"
 
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.hostname=${GRPC_ROUTER_DEFAULT_HOSTNAME}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_ROUTER_DEFAULT_ENDPOINT}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.hostname=${GRPC_ROUTER_DEFAULT_HOSTNAME}"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.endpoint=${GRPC_ROUTER_DEFAULT_ENDPOINT}"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.hostname=${GRPC_ROUTER_ANOTHER_HOSTNAME}"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.endpoint=${GRPC_ROUTER_ANOTHER_ENDPOINT}"
 
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.default.labels.router-name=default"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.grpc.routers.another.labels.router-name=another"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.default.labels.router-name=default"
+HELM_SETS+=" --set jumpstarter-controller.grpc.routers.another.labels.router-name=another"
 
 IMAGE_REPO=$(echo ${IMG} | cut -d: -f1)
 IMAGE_TAG=$(echo ${IMG} | cut -d: -f2)
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.image=${IMAGE_REPO}"
-HELM_SETS="${HELM_SETS} --set jumpstarter-controller.tag=${IMAGE_TAG}"
+HELM_SETS+=" --set jumpstarter-controller.image=${IMAGE_REPO}"
+HELM_SETS+=" --set jumpstarter-controller.tag=${IMAGE_TAG}"
 
 # Function to save images to kind, with workaround for github CI and other environment issues
 # In github CI, kind gets confused and tries to pull the image from docker instead
