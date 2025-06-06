@@ -239,6 +239,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "provisioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
         "authentication": {
           "type": "object",
           "additionalProperties": false,
