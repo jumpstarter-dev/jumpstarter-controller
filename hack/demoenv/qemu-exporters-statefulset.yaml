@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qemu-exporter
+spec:
+  serviceName: qemu-exporter
+  replicas: 5
+  selector:
+    matchLabels:
+      exporter-type: qemu
+  template:
+    metadata:
+      labels:
+        exporter-type: qemu
+      annotations:
+        openshift.io/required-scc: privileged
+    spec:
+      restartPolicy: Always
+
+      containers:
+      - name: jumpstarter-exporter
+        # TODO: we need a continuous release of this image in jumpstarter. i.e. quay.io/jumpstarter/jumpstarter-with-qemu:latest
+        image: quay.io/mangelajo/jumpstarter:rel6-qemu
+        securityContext:
+          privileged: true
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 2000m
+            memory: "2G"
+          requests:
+            cpu: 100m
+            memory: "1G"
+        env:
+        - name: JUMPSTARTER_GRPC_INSECURE
+          value: "1"
+        # note for some reason jmp-exporter run $(cat /etc/hostname)   won't find the config, neither does list
+        command: ["/bin/sh", "-c", "echo running exporter $(cat /etc/hostname); jmp run --exporter $(cat /etc/hostname)"]
+        # map the exporter-configs ConfigMap to /etc/jumpstarter/exporters
+        volumeMounts:
+        - name: exporter-configs
+          mountPath: /etc/jumpstarter/exporters
+        - mountPath: /shared
+          name: shared
+        - mountPath: /dev/kvm
+          name: dev-kvm
+        - mountPath: /dev/vhost-vsock
+          name: dev-vhost-vsock
+      volumes:
+      - name: exporter-configs
+        configMap:
+          name: exporter-configs
+      - name: shared
+        emptyDir: {}
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+          type: CharDevice
+      - name: dev-vhost-vsock
+        hostPath:
+          path: /dev/vhost-vsock
+          type: CharDevice
