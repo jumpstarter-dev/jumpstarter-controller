@@ -42,6 +42,8 @@ global:
 ## @param jumpstarter-controller.config.authentication.internal.prefix. Prefix to add to the subject claim of the tokens issued by the builtin authenticator.
 ## @param jumpstarter-controller.config.authentication.jwt. External OIDC authentication, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration for documentation
 
+## @param jumpstarter-controller.config.exporterOptions.offlineTimeout. How long to wait before marking the exporter as offline.
+
 ## @section Ingress And Route parameters
 ## @descriptionStart This section contains parameters for the Ingress and Route configurations.
 ## You can enable either the gRPC ingress or the OpenShift route but not both.
@@ -77,6 +79,9 @@ jumpstarter-controller:
     namespace: ""
 
     config:
+      exporterOptions:
+        offlineTimeout: 180s # how long to wait before marking the exporter as offline
+
       grpc:
         keepalive:
           # EnforcementPolicy parameters
@@ -86,7 +91,7 @@ jumpstarter-controller:
           permitWithoutStream: true
 
           # ServerParameters for connection timeout control
-          timeout: 120s                     # How long to wait for ping response before closing (default: 20s)
+          # timeout: 180s                   # How long to wait for ping response before closing (default: 180s)
           # maxConnectionIdle: 30m          # Max idle time before closing (default: infinity)
           # maxConnectionAge: 2h            # Max connection lifetime (default: infinity)
           # maxConnectionAgeGrace: 30s      # Grace period after max age (default: infinity)

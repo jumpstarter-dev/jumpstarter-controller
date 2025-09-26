@@ -1,14 +1,14 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
-// the grpc lib default is 20 seconds
-const defaultGrpcTimeout = 120 * time.Second
+const defaultGrpcTimeout = 180 * time.Second
 
 func LoadGrpcConfiguration(config Grpc) ([]grpc.ServerOption, error) {
 	var serverOptions []grpc.ServerOption
@@ -31,7 +31,7 @@ func LoadGrpcConfiguration(config Grpc) ([]grpc.ServerOption, error) {
 	if config.Keepalive.Timeout != "" {
 		timeout, err := time.ParseDuration(config.Keepalive.Timeout)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("LoadGrpcConfiguration: failed to parse Keepalive Timeout: %w", err)
 		}
 		serverParams.Timeout = timeout
 	} else {

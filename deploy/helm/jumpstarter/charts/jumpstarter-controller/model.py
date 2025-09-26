@@ -203,6 +203,15 @@ class JWTAuthenticator(BaseModel):
     userValidationRules: Optional[List[UserValidationRule]] = None
 
 
+class ExporterOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    offlineTimeout: Optional[str] = Field(
+        None,
+        description="How long to wait before marking the exporter as offline",
+    )
+
+
 class Authentication(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -219,6 +228,7 @@ class JumpstarterConfig(BaseModel):
     provisioning: Optional[Provisioning] = None
     authentication: Optional[Authentication] = None
     grpc: Optional[Grpc] = None
+    exporterOptions: Optional[ExporterOptions] = None
 
 
 class Nodeport(BaseModel):

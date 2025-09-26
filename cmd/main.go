@@ -154,7 +154,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authenticator, prefix, router, option, provisioning, err := config.LoadConfiguration(
+	authenticator, prefix, router, option, provisioning, exporterOptions, err := config.LoadConfiguration(
 		context.Background(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
@@ -174,9 +174,10 @@ func main() {
 	}
 
 	if err = (&controller.ExporterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Signer: oidcSigner,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Signer:          oidcSigner,
+		ExporterOptions: *exporterOptions,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
