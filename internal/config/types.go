@@ -28,8 +28,16 @@ type Grpc struct {
 }
 
 type Keepalive struct {
+	// EnforcementPolicy parameters
 	MinTime             string `json:"minTime"`
 	PermitWithoutStream bool   `json:"permitWithoutStream"`
+
+	// ServerParameters for connection timeout control
+	Timeout               string `json:"timeout,omitempty"`               // How long to wait for ping response before closing
+	MaxConnectionIdle     string `json:"maxConnectionIdle,omitempty"`     // Max idle time before closing
+	MaxConnectionAge      string `json:"maxConnectionAge,omitempty"`      // Max connection lifetime
+	MaxConnectionAgeGrace string `json:"maxConnectionAgeGrace,omitempty"` // Grace period after max age
+	Time                  string `json:"time,omitempty"`                  // How often server sends pings
 }
 
 type Router map[string]RouterEntry

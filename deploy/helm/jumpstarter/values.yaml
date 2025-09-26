@@ -33,6 +33,11 @@ global:
 
 ## @param jumpstarter-controller.config.grpc.keepalive.minTime. The minimum amount of time a client should wait before sending a keepalive ping.
 ## @param jumpstarter-controller.config.grpc.keepalive.permitWithoutStream. Whether to allow keepalive pings even when there are no active streams(RPCs).
+## @param jumpstarter-controller.config.grpc.keepalive.timeout. How long the server waits for a ping response before closing the connection.
+## @param jumpstarter-controller.config.grpc.keepalive.maxConnectionIdle. Maximum time a connection can be idle before being closed.
+## @param jumpstarter-controller.config.grpc.keepalive.maxConnectionAge. Maximum lifetime of a connection before it's closed.
+## @param jumpstarter-controller.config.grpc.keepalive.maxConnectionAgeGrace. Grace period after max connection age before forcible closure.
+## @param jumpstarter-controller.config.grpc.keepalive.time. How often the server sends keepalive pings to clients.
 
 ## @param jumpstarter-controller.config.authentication.internal.prefix. Prefix to add to the subject claim of the tokens issued by the builtin authenticator.
 ## @param jumpstarter-controller.config.authentication.jwt. External OIDC authentication, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration for documentation
@@ -74,10 +79,18 @@ jumpstarter-controller:
     config:
       grpc:
         keepalive:
+          # EnforcementPolicy parameters
           # Safety: potentially makes server vulnerable to DDoS
           # https://grpc.io/docs/guides/keepalive/#how-configuring-keepalive-affects-a-call
           minTime: 3s
           permitWithoutStream: true
+
+          # ServerParameters for connection timeout control
+          timeout: 120s                     # How long to wait for ping response before closing (default: 20s)
+          # maxConnectionIdle: 30m          # Max idle time before closing (default: infinity)
+          # maxConnectionAge: 2h            # Max connection lifetime (default: infinity)
+          # maxConnectionAgeGrace: 30s      # Grace period after max age (default: infinity)
+          # time: 2h                        # How often server sends pings (default: 2h)
       authentication:
         internal:
           prefix: "internal:"

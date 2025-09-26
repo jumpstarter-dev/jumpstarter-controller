@@ -29,6 +29,7 @@ class Internal(BaseModel):
 class Keepalive(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # EnforcementPolicy parameters
     minTime: Optional[str] = Field(
         None,
         description="The minimum amount of time a client should wait before sending a keepalive ping",
@@ -36,6 +37,28 @@ class Keepalive(BaseModel):
     permitWithoutStream: Optional[bool] = Field(
         None,
         description="Whether to allow keepalive pings even when there are no active streams(RPCs)",
+    )
+
+    # ServerParameters for connection timeout control
+    timeout: Optional[str] = Field(
+        None,
+        description="How long the server waits for a ping response before closing the connection",
+    )
+    maxConnectionIdle: Optional[str] = Field(
+        None,
+        description="Maximum time a connection can be idle before being closed",
+    )
+    maxConnectionAge: Optional[str] = Field(
+        None,
+        description="Maximum lifetime of a connection before it's closed",
+    )
+    maxConnectionAgeGrace: Optional[str] = Field(
+        None,
+        description="Grace period after max connection age before forcible closure",
+    )
+    time: Optional[str] = Field(
+        None,
+        description="How often the server sends keepalive pings to clients",
     )
 
 

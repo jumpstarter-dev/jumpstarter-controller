@@ -71,14 +71,14 @@ import (
 // ControllerService exposes a gRPC service
 type ControllerService struct {
 	pb.UnimplementedControllerServiceServer
-	Client       client.WithWatch
-	Scheme       *runtime.Scheme
-	Authn        authentication.ContextAuthenticator
-	Authz        authorizer.Authorizer
-	Attr         authorization.ContextAttributesGetter
-	ServerOption grpc.ServerOption
-	Router       config.Router
-	listenQueues sync.Map
+	Client        client.WithWatch
+	Scheme        *runtime.Scheme
+	Authn         authentication.ContextAuthenticator
+	Authz         authorizer.Authorizer
+	Attr          authorization.ContextAttributesGetter
+	ServerOptions []grpc.ServerOption
+	Router        config.Router
+	listenQueues  sync.Map
 }
 
 type wrappedStream struct {
@@ -700,8 +700,7 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		return err
 	}
 
-	server := grpc.NewServer(
-		s.ServerOption,
+	serverOptions := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(func(
 			gctx context.Context,
 			req any,
@@ -718,7 +717,10 @@ func (s *ControllerService) Start(ctx context.Context) error {
 		) error {
 			return handler(srv, &wrappedStream{ServerStream: ss})
 		}, recovery.StreamServerInterceptor()),
-	)
+	}
+	serverOptions = append(serverOptions, s.ServerOptions...)
+
+	server := grpc.NewServer(serverOptions...)
 
 	pb.RegisterControllerServiceServer(server, s)
 	cpb.RegisterClientServiceServer(
