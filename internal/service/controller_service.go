@@ -54,6 +54,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8suuid "k8s.io/apimachinery/pkg/util/uuid"
@@ -670,7 +671,9 @@ func (s *ControllerService) ListLeases(
 		ctx,
 		&leases,
 		client.InNamespace(jclient.Namespace),
-		controller.MatchingActiveLeases(),
+		client.MatchingLabelsSelector{
+			Selector: controller.MatchingActiveLeases(labels.Everything()),
+		},
 	); err != nil {
 		return nil, err
 	}

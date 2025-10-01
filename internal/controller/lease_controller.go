@@ -377,7 +377,9 @@ func (r *LeaseReconciler) ListActiveLeases(ctx context.Context, namespace string
 		ctx,
 		&activeLeases,
 		client.InNamespace(namespace),
-		MatchingActiveLeases(),
+		client.MatchingLabelsSelector{
+			Selector: MatchingActiveLeases(labels.Everything()),
+		},
 	); err != nil {
 		return nil, err
 	}

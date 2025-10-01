@@ -138,10 +138,10 @@ func (s *ClientService) ListLeases(ctx context.Context, req *cpb.ListLeasesReque
 	var jleases jumpstarterdevv1alpha1.LeaseList
 	if err := s.List(ctx, &jleases, &kclient.ListOptions{
 		Namespace:     namespace,
-		LabelSelector: selector,
+		LabelSelector: controller.MatchingActiveLeases(selector),
 		Limit:         int64(req.PageSize),
 		Continue:      req.PageToken,
-	}, controller.MatchingActiveLeases()); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 

@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -117,7 +118,9 @@ func (r *ExporterReconciler) reconcileStatusLeaseRef(
 		ctx,
 		&leases,
 		client.InNamespace(exporter.Namespace),
-		MatchingActiveLeases(),
+		client.MatchingLabelsSelector{
+			Selector: MatchingActiveLeases(labels.Everything()),
+		},
 	); err != nil {
 		return fmt.Errorf("reconcileStatusLeaseRef: failed to list active leases: %w", err)
 	}
