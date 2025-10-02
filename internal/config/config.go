@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -49,33 +48,33 @@ func LoadConfiguration(
 	key client.ObjectKey,
 	signer *oidc.Signer,
 	certificateAuthority string,
-) (authenticator.Token, string, Router, []grpc.ServerOption, *Provisioning, *ExporterOptions, error) {
+) (*ConfigurationResult, error) {
 	var configmap corev1.ConfigMap
 	if err := client.Get(ctx, key, &configmap); err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rawRouter, ok := configmap.Data["router"]
 	if !ok {
-		return nil, "", nil, nil, nil, nil, fmt.Errorf("LoadConfiguration: missing router section")
+		return nil, fmt.Errorf("LoadConfiguration: missing router section")
 	}
 
 	var router Router
 	if err := yaml.Unmarshal([]byte(rawRouter), &router); err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rawConfig, ok := configmap.Data["config"]
 	if !ok {
-		return nil, "", nil, nil, nil, nil, fmt.Errorf("LoadConfiguration: missing config section")
+		return nil, fmt.Errorf("LoadConfiguration: missing config section")
 	}
 
 	var config Config
 	if err := yaml.UnmarshalStrict([]byte(rawConfig), &config); err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	authenticator, prefix, err := LoadAuthenticationConfiguration(
+	authResult, err := LoadAuthenticationConfiguration(
 		ctx,
 		scheme,
 		config.Authentication,
@@ -83,18 +82,24 @@ func LoadConfiguration(
 		certificateAuthority,
 	)
 	if err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	serverOptions, err := LoadGrpcConfiguration(config.Grpc)
 	if err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	// Preprocess configuration values (parse durations, cache expensive operations, etc.)
 	if err := config.ExporterOptions.PreprocessConfig(); err != nil {
-		return nil, "", nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	return authenticator, prefix, router, serverOptions, &config.Provisioning, &config.ExporterOptions, nil
+	return &ConfigurationResult{
+		AuthenticationConfigResult: *authResult,
+		Router:                     router,
+		ServerOptions:              serverOptions,
+		Provisioning:               &config.Provisioning,
+		ExporterOptions:            &config.ExporterOptions,
+	}, nil
 }

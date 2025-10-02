@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/grpc"
 	apiserverv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 )
 
 type Config struct {
@@ -79,4 +81,19 @@ type Router map[string]RouterEntry
 type RouterEntry struct {
 	Endpoint string            `json:"endpoint"`
 	Labels   map[string]string `json:"labels"`
+}
+
+// AuthenticationConfigResult contains the authentication components loaded by LoadAuthenticationConfiguration
+type AuthenticationConfigResult struct {
+	Authenticator               authenticator.Token `json:"-"`
+	InternalAuthenticatorPrefix string              `json:"-"`
+}
+
+// ConfigurationResult contains all the configuration components loaded by LoadConfiguration
+type ConfigurationResult struct {
+	AuthenticationConfigResult
+	Router          Router              `json:"router"`
+	ServerOptions   []grpc.ServerOption `json:"-"`
+	Provisioning    *Provisioning       `json:"provisioning"` // if we want authenticated users to be automatically created
+	ExporterOptions *ExporterOptions    `json:"exporterOptions"`
 }
