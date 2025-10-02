@@ -1,13 +1,19 @@
 package config
 
 import (
+	"fmt"
+	"time"
+
+	"google.golang.org/grpc"
 	apiserverv1beta1 "k8s.io/apiserver/pkg/apis/apiserver/v1beta1"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 )
 
 type Config struct {
-	Authentication Authentication `json:"authentication"`
-	Provisioning   Provisioning   `json:"provisioning"`
-	Grpc           Grpc           `json:"grpc"`
+	Authentication  Authentication  `json:"authentication"`
+	Provisioning    Provisioning    `json:"provisioning"`
+	Grpc            Grpc            `json:"grpc"`
+	ExporterOptions ExporterOptions `json:"exporterOptions"`
 }
 
 type Authentication struct {
@@ -28,8 +34,46 @@ type Grpc struct {
 }
 
 type Keepalive struct {
+	// EnforcementPolicy parameters
 	MinTime             string `json:"minTime"`
 	PermitWithoutStream bool   `json:"permitWithoutStream"`
+
+	// ServerParameters for connection timeout control
+	Timeout               string `json:"timeout,omitempty"`               // How long to wait for ping response before closing
+	MaxConnectionIdle     string `json:"maxConnectionIdle,omitempty"`     // Max idle time before closing
+	MaxConnectionAge      string `json:"maxConnectionAge,omitempty"`      // Max connection lifetime
+	MaxConnectionAgeGrace string `json:"maxConnectionAgeGrace,omitempty"` // Grace period after max age
+	Time                  string `json:"time,omitempty"`                  // How often server sends pings
+}
+
+type ExporterOptions struct {
+	OfflineTimeout    string        `json:"offlineTimeout,omitempty"` // How long to wait before marking the exporter as offline
+	offlineTimeoutDur time.Duration // Pre-calculated duration, set during LoadConfiguration
+}
+
+// PreprocessConfig parses and caches configuration values that require processing
+// This method should be called once during configuration loading to pre-calculate
+// expensive operations and cache the results for efficient retrieval
+func (e *ExporterOptions) PreprocessConfig() error {
+	// Parse and cache the offline timeout duration
+	if e.OfflineTimeout == "" {
+		e.offlineTimeoutDur = 3 * time.Minute // Default fallback
+	} else {
+		duration, err := time.ParseDuration(e.OfflineTimeout)
+		if err != nil {
+			return fmt.Errorf("PreprocessConfig: failed to parse exporter offline timeout: %w", err)
+		} else {
+			e.offlineTimeoutDur = duration
+		}
+	}
+
+	// Future configuration parsing can be added here
+	return nil
+}
+
+// GetOfflineTimeout returns the pre-calculated offline timeout duration
+func (e *ExporterOptions) GetOfflineTimeout() time.Duration {
+	return e.offlineTimeoutDur
 }
 
 type Router map[string]RouterEntry
@@ -37,4 +81,19 @@ type Router map[string]RouterEntry
 type RouterEntry struct {
 	Endpoint string            `json:"endpoint"`
 	Labels   map[string]string `json:"labels"`
+}
+
+// AuthenticationConfigResult contains the authentication components loaded by LoadAuthenticationConfiguration
+type AuthenticationConfigResult struct {
+	Authenticator               authenticator.Token `json:"-"`
+	InternalAuthenticatorPrefix string              `json:"-"`
+}
+
+// ConfigurationResult contains all the configuration components loaded by LoadConfiguration
+type ConfigurationResult struct {
+	AuthenticationConfigResult
+	Router          Router              `json:"router"`
+	ServerOptions   []grpc.ServerOption `json:"-"`
+	Provisioning    *Provisioning       `json:"provisioning"` // if we want authenticated users to be automatically created
+	ExporterOptions *ExporterOptions    `json:"exporterOptions"`
 }
