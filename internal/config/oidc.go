@@ -20,7 +20,7 @@ func LoadAuthenticationConfiguration(
 	config Authentication,
 	signer *oidc.Signer,
 	certificateAuthority string,
-) (authenticator.Token, string, error) {
+) (*AuthenticationConfigResult, error) {
 	if config.Internal.Prefix == "" {
 		config.Internal.Prefix = "internal:"
 	}
@@ -45,10 +45,13 @@ func LoadAuthenticationConfiguration(
 		config,
 	)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	return authn, config.Internal.Prefix, nil
+	return &AuthenticationConfigResult{
+		Authenticator:               authn,
+		InternalAuthenticatorPrefix: config.Internal.Prefix,
+	}, nil
 }
 
 // Reference: https://github.com/kubernetes/kubernetes/blob/v1.32.1/pkg/kubeapiserver/authenticator/config.go#L244

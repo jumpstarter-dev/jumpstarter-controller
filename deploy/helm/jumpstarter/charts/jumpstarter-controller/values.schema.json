@@ -214,6 +214,26 @@
       "title": "ClaimValidationRule",
       "type": "object"
     },
+    "ExporterOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "offlineTimeout": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How long to wait before marking the exporter as offline",
+          "title": "Offlinetimeout"
+        }
+      },
+      "title": "ExporterOptions",
+      "type": "object"
+    },
     "ExtraItem": {
       "additionalProperties": false,
       "properties": {
@@ -638,6 +658,17 @@
             }
           ],
           "default": null
+        },
+        "exporterOptions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExporterOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "JumpstarterConfig",
@@ -671,6 +702,71 @@
           "default": null,
           "description": "Whether to allow keepalive pings even when there are no active streams(RPCs)",
           "title": "Permitwithoutstream"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How long the server waits for a ping response before closing the connection",
+          "title": "Timeout"
+        },
+        "maxConnectionIdle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum time a connection can be idle before being closed",
+          "title": "Maxconnectionidle"
+        },
+        "maxConnectionAge": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum lifetime of a connection before it's closed",
+          "title": "Maxconnectionage"
+        },
+        "maxConnectionAgeGrace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Grace period after max connection age before forcible closure",
+          "title": "Maxconnectionagegrace"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How often the server sends keepalive pings to clients",
+          "title": "Time"
         }
       },
       "title": "Keepalive",

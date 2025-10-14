@@ -21,6 +21,7 @@ import (
 	"time"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/config"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 	cpb "github.com/jumpstarter-dev/jumpstarter-controller/internal/protocol/jumpstarter/client/v1"
 	. "github.com/onsi/ginkgo/v2"
@@ -333,6 +334,9 @@ var _ = Describe("Lease Controller", func() {
 			lease.Spec.Selector.MatchLabels["dut"] = "b"
 
 			ctx := context.Background()
+
+			setExporterOnlineConditions(ctx, testExporter3DutB.Name, metav1.ConditionTrue)
+
 			Expect(k8sClient.Create(ctx, lease)).To(Succeed())
 			_ = reconcileLease(ctx, lease)
 
@@ -373,6 +377,7 @@ var _ = Describe("Lease Controller", func() {
 			lease.Spec.Duration = &metav1.Duration{Duration: 500 * time.Millisecond}
 
 			ctx := context.Background()
+			setExporterOnlineConditions(ctx, testExporter3DutB.Name, metav1.ConditionTrue)
 			Expect(k8sClient.Create(ctx, lease)).To(Succeed())
 			_ = reconcileLease(ctx, lease)
 
@@ -511,6 +516,12 @@ func reconcileLease(ctx context.Context, lease *jumpstarterdevv1alpha1.Lease) re
 		Client: k8sClient,
 		Scheme: k8sClient.Scheme(),
 		Signer: signer,
+		ExporterOptions: config.ExporterOptions{
+			OfflineTimeout: "1m",
+		},
+	}
+	if err := exporterReconciler.ExporterOptions.PreprocessConfig(); err != nil {
+		Expect(err).NotTo(HaveOccurred())
 	}
 
 	res, err := leaseReconciler.Reconcile(ctx, reconcile.Request{

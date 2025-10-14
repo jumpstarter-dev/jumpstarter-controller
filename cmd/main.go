@@ -154,7 +154,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authenticator, prefix, router, option, provisioning, err := config.LoadConfiguration(
+	configResult, err := config.LoadConfiguration(
 		context.Background(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
@@ -174,9 +174,10 @@ func main() {
 	}
 
 	if err = (&controller.ExporterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Signer: oidcSigner,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Signer:          oidcSigner,
+		ExporterOptions: *configResult.ExporterOptions,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Exporter")
 		os.Exit(1)
@@ -207,15 +208,18 @@ func main() {
 	if err = (&service.ControllerService{
 		Client: watchClient,
 		Scheme: mgr.GetScheme(),
-		Authn:  authentication.NewBearerTokenAuthenticator(authenticator),
-		Authz:  authorization.NewBasicAuthorizer(watchClient, prefix, provisioning.Enabled),
+		Authn:  authentication.NewBearerTokenAuthenticator(configResult.Authenticator),
+		Authz: authorization.NewBasicAuthorizer(
+			watchClient,
+			configResult.InternalAuthenticatorPrefix,
+			configResult.Provisioning.Enabled),
 		Attr: authorization.NewMetadataAttributesGetter(authorization.MetadataAttributesGetterConfig{
 			NamespaceKey: "jumpstarter-namespace",
 			ResourceKey:  "jumpstarter-kind",
 			NameKey:      "jumpstarter-name",
 		}),
-		Router:       router,
-		ServerOption: option,
+		Router:        configResult.Router,
+		ServerOptions: configResult.ServerOptions,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create service", "service", "Controller")
 		os.Exit(1)

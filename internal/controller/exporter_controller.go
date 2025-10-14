@@ -30,14 +30,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	jumpstarterdevv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/api/v1alpha1"
+	"github.com/jumpstarter-dev/jumpstarter-controller/internal/config"
 	"github.com/jumpstarter-dev/jumpstarter-controller/internal/oidc"
 )
 
 // ExporterReconciler reconciles a Exporter object
 type ExporterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Signer *oidc.Signer
+	Scheme          *runtime.Scheme
+	Signer          *oidc.Signer
+	ExporterOptions config.ExporterOptions
 }
 
 // +kubebuilder:rbac:groups=jumpstarter.dev,resources=exporters,verbs=get;list;watch;create;update;patch;delete
@@ -158,6 +160,7 @@ func (r *ExporterReconciler) reconcileStatusConditionsOnline(
 	exporter *jumpstarterdevv1alpha1.Exporter,
 ) (ctrl.Result, error) {
 	var requeueAfter time.Duration = 0
+	offlineTimeout := r.ExporterOptions.GetOfflineTimeout()
 
 	if exporter.Status.LastSeen.IsZero() {
 		meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
@@ -168,13 +171,13 @@ func (r *ExporterReconciler) reconcileStatusConditionsOnline(
 			Message:            "Never seen",
 		})
 		// marking the exporter offline, no need to requeue
-	} else if time.Since(exporter.Status.LastSeen.Time) > time.Minute {
+	} else if time.Since(exporter.Status.LastSeen.Time) > offlineTimeout {
 		meta.SetStatusCondition(&exporter.Status.Conditions, metav1.Condition{
 			Type:               string(jumpstarterdevv1alpha1.ExporterConditionTypeOnline),
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: exporter.Generation,
 			Reason:             "Seen",
-			Message:            "Last seen more than 1 minute ago",
+			Message:            fmt.Sprintf("Last seen more than %v ago", offlineTimeout),
 		})
 		// marking the exporter offline, no need to requeue
 	} else {
@@ -183,10 +186,27 @@ func (r *ExporterReconciler) reconcileStatusConditionsOnline(
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: exporter.Generation,
 			Reason:             "Seen",
-			Message:            "Last seen less than 1 minute ago",
+			Message:            fmt.Sprintf("Last seen less than %v ago", offlineTimeout),
 		})
-		// marking the exporter online, requeue after 30 seconds
-		requeueAfter = time.Second * 30
+
+		// Calculate when the exporter will go offline
+		expirationTime := exporter.Status.LastSeen.Add(offlineTimeout)
+		timeUntilExpiration := time.Until(expirationTime)
+
+		// Set requeue time to be just after expiration (with a small safety margin)
+		// This way we can definitively determine if the exporter expired or was updated
+		safetyMargin := 10 * time.Second
+		if timeUntilExpiration > 0 {
+			// Exporter hasn't expired yet, requeue after expiration + safety margin
+			requeueAfter = timeUntilExpiration + safetyMargin
+			// Cap the requeue time to avoid very long waits
+			if requeueAfter > 5*time.Minute {
+				requeueAfter = 5 * time.Minute
+			}
+		} else {
+			// Exporter should have already expired, requeue in safety margin time
+			requeueAfter = safetyMargin
+		}
 	}
 
 	if exporter.Status.Devices == nil {
