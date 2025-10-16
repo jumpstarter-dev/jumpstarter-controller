@@ -17,6 +17,7 @@ type OIDCService struct {
 }
 
 func (s *OIDCService) Start(ctx context.Context) error {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	s.Signer.Register(r)
