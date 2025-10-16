@@ -39,6 +39,7 @@ type DashboardService struct {
 }
 
 func (s *DashboardService) Start(ctx context.Context) error {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	r.SetHTMLTemplate(template.Must(template.ParseFS(fs, "templates/*")))
