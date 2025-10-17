@@ -7,6 +7,16 @@ DOCKER_TAG  = $(shell echo $(IMG) | cut -d: -f2)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.30.0
 
+# Version information
+GIT_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "unknown")
+GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+# LDFLAGS for version information
+LDFLAGS := -X main.version=$(GIT_VERSION) \
+           -X main.gitCommit=$(GIT_COMMIT) \
+           -X main.buildDate=$(BUILD_DATE)
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -53,6 +63,8 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 						output:crd:artifacts:config=deploy/helm/jumpstarter/crds/ \
 						output:rbac:artifacts:config=deploy/helm/jumpstarter/charts/jumpstarter-controller/templates/rbac/
 
+	cp deploy/helm/jumpstarter/crds/* deploy/operator/config/crd/bases/
+
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..." paths="./internal/..."
@@ -83,10 +95,13 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
 ##@ Build
+.PHONY: build-operator
+build-operator:
+	make -C deploy/operator build-installer docker-build
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+	go build -ldflags "$(LDFLAGS)" -o bin/manager cmd/main.go
 	go build -o bin/router  cmd/router/main.go
 
 .PHONY: run
@@ -102,7 +117,11 @@ run-router: manifests generate fmt vet ## Run a router from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build \
+		--build-arg GIT_VERSION=$(GIT_VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -122,6 +141,9 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx create --name jumpstarter-controller-builder
 	$(CONTAINER_TOOL) buildx use jumpstarter-controller-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) \
+			--build-arg GIT_VERSION=$(GIT_VERSION) \
+			--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+			--build-arg BUILD_DATE=$(BUILD_DATE) \
 			--tag ${DOCKER_REPO}:${DOCKER_TAG} \
 			--tag ${DOCKER_REPO}:latest \
 			-f Dockerfile.cross .
@@ -151,6 +173,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: docker-build cluster grpcurl
 	./hack/deploy_with_helm.sh
+
+deploy-with-operator: docker-build build-operator docker-build cluster grpcurl
+	./hack/deploy_with_operator.sh
 
 .PHONY: deploy-exporters
 deploy-exporters:
