@@ -85,6 +85,9 @@ type JumpstarterReconciler struct {
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes/status,verbs=get;update;patch
 
+// OpenShift config resources (for baseDomain auto-detection)
+// +kubebuilder:rbac:groups=config.openshift.io,resources=dnses,verbs=get;list;watch
+
 // Monitoring resources
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 
@@ -125,6 +128,18 @@ func (r *JumpstarterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if jumpstarter.GetDeletionTimestamp() != nil {
 		// Handle finalizer logic here if needed
 		return ctrl.Result{}, nil
+	}
+
+	// Auto-detect baseDomain if not provided
+	if jumpstarter.Spec.BaseDomain == "" {
+		log.Info("BaseDomain not provided, attempting auto-detection from OpenShift DNS cluster config")
+		detectedBaseDomain, err := endpoints.DiscoverBaseDomain(ctx, r.Client, jumpstarter.Namespace)
+		if err != nil {
+			log.Error(err, "Failed to auto-detect baseDomain - baseDomain is required but was not provided and could not be auto-detected")
+			return ctrl.Result{}, fmt.Errorf("baseDomain is required but was not provided and could not be auto-detected: %w", err)
+		}
+		jumpstarter.Spec.BaseDomain = detectedBaseDomain
+		log.Info("Successfully auto-detected baseDomain", "baseDomain", detectedBaseDomain)
 	}
 
 	// Reconcile RBAC resources first
