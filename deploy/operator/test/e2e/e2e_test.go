@@ -29,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,7 +107,7 @@ var _ = Describe("Manager", Ordered, func() {
 			req := clientset.CoreV1().Pods(namespace).GetLogs(controllerPodName, &corev1.PodLogOptions{})
 			podLogs, err := req.Stream(ctx)
 			if err == nil {
-				defer podLogs.Close()
+				defer podLogs.Close() //nolint:errcheck // Close errors on log streams are not actionable in test cleanup
 				buf := new(bytes.Buffer)
 				_, _ = io.Copy(buf, podLogs)
 				_, _ = fmt.Fprintf(GinkgoWriter, "Controller logs:\n %s", buf.String())
@@ -121,7 +122,7 @@ var _ = Describe("Manager", Ordered, func() {
 				_, _ = fmt.Fprintf(GinkgoWriter, "Kubernetes events:\n")
 				for _, event := range eventList.Items {
 					_, _ = fmt.Fprintf(GinkgoWriter, "%s %s %s %s\n",
-						event.LastTimestamp.Time.Format(time.RFC3339),
+						event.LastTimestamp.Format(time.RFC3339),
 						event.InvolvedObject.Name,
 						event.Reason,
 						event.Message)
@@ -134,7 +135,7 @@ var _ = Describe("Manager", Ordered, func() {
 			req = clientset.CoreV1().Pods(namespace).GetLogs("curl-metrics", &corev1.PodLogOptions{})
 			metricsLogs, err := req.Stream(ctx)
 			if err == nil {
-				defer metricsLogs.Close()
+				defer metricsLogs.Close() //nolint:errcheck // Close errors on log streams are not actionable in test cleanup
 				buf := new(bytes.Buffer)
 				_, _ = io.Copy(buf, metricsLogs)
 				_, _ = fmt.Fprintf(GinkgoWriter, "Metrics logs:\n %s", buf.String())
@@ -238,26 +239,27 @@ var _ = Describe("Manager", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred(), "Metrics service should exist")
 
 			By("getting the service account token")
-			token, err := serviceAccountToken()
-			Expect(err).NotTo(HaveOccurred())
+			token := serviceAccountToken()
 			Expect(token).NotTo(BeEmpty())
 
 			By("waiting for the metrics endpoint to be ready")
 			verifyMetricsEndpointReady := func(g Gomega) {
-				endpoints := &corev1.Endpoints{}
-				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      metricsServiceName,
-					Namespace: namespace,
-				}, endpoints)
+				endpointSliceList := &discoveryv1.EndpointSliceList{}
+				err := k8sClient.List(ctx, endpointSliceList, client.InNamespace(namespace), client.MatchingLabels{
+					"kubernetes.io/service-name": metricsServiceName,
+				})
 				g.Expect(err).NotTo(HaveOccurred())
 
 				hasPort := false
-				for _, subset := range endpoints.Subsets {
-					for _, port := range subset.Ports {
-						if port.Port == 8443 {
+				for _, endpointSlice := range endpointSliceList.Items {
+					for _, port := range endpointSlice.Ports {
+						if port.Port != nil && *port.Port == 8443 {
 							hasPort = true
 							break
 						}
+					}
+					if hasPort {
+						break
 					}
 				}
 				g.Expect(hasPort).To(BeTrue(), "Metrics endpoint is not ready")
@@ -269,7 +271,7 @@ var _ = Describe("Manager", Ordered, func() {
 				req := clientset.CoreV1().Pods(namespace).GetLogs(controllerPodName, &corev1.PodLogOptions{})
 				podLogs, err := req.Stream(ctx)
 				g.Expect(err).NotTo(HaveOccurred())
-				defer podLogs.Close()
+				defer podLogs.Close() //nolint:errcheck // Close errors on log streams are not actionable in test cleanup
 				buf := new(bytes.Buffer)
 				_, _ = io.Copy(buf, podLogs)
 				g.Expect(buf.String()).To(ContainSubstring("controller-runtime.metrics\tServing metrics server"),
@@ -596,7 +598,7 @@ provisioning:
 
 // serviceAccountToken returns a token for the specified service account in the given namespace.
 // It uses the Kubernetes TokenRequest API to generate a token by directly calling the API.
-func serviceAccountToken() (string, error) {
+func serviceAccountToken() string {
 	var token string
 	verifyTokenCreation := func(g Gomega) {
 		// Create a token request for the service account
@@ -620,7 +622,7 @@ func serviceAccountToken() (string, error) {
 	}
 	Eventually(verifyTokenCreation).Should(Succeed())
 
-	return token, nil
+	return token
 }
 
 // getMetricsOutput retrieves and returns the logs from the curl pod used to access the metrics endpoint.
@@ -629,7 +631,7 @@ func getMetricsOutput() string {
 	req := clientset.CoreV1().Pods(namespace).GetLogs("curl-metrics", &corev1.PodLogOptions{})
 	podLogs, err := req.Stream(ctx)
 	Expect(err).NotTo(HaveOccurred(), "Failed to retrieve logs from curl pod")
-	defer podLogs.Close()
+	defer podLogs.Close() //nolint:errcheck // Close errors on log streams are not actionable in test cleanup
 
 	buf := new(bytes.Buffer)
 	_, _ = io.Copy(buf, podLogs)
