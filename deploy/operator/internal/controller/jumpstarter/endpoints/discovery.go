@@ -17,8 +17,14 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -47,4 +53,49 @@ func discoverAPIResource(config *rest.Config, groupVersion, kind string) bool {
 	}
 
 	return false
+}
+
+// DiscoverBaseDomain attempts to auto-detect the baseDomain from OpenShift DNS cluster config
+// It returns the detected baseDomain in the format "namespace.apps.baseDomain" for
+// OpenShift clusters, or an error if it cannot be determined.
+func DiscoverBaseDomain(ctx context.Context, c client.Client, namespace string) (string, error) {
+	logger := log.FromContext(ctx)
+
+	// Try to fetch the OpenShift DNS cluster configuration
+	dns := &unstructured.Unstructured{}
+	dns.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "config.openshift.io",
+		Version: "v1",
+		Kind:    "DNS",
+	})
+
+	err := c.Get(ctx, client.ObjectKey{Name: "cluster"}, dns)
+	if err != nil {
+		logger.Error(err, "Failed to get OpenShift DNS cluster config - baseDomain cannot be auto-detected")
+		return "", fmt.Errorf("failed to auto-detect baseDomain from OpenShift DNS cluster config: %w", err)
+	}
+
+	// Extract spec.baseDomain from the DNS object
+	spec, found, err := unstructured.NestedMap(dns.Object, "spec")
+	if err != nil || !found {
+		logger.Error(err, "Failed to get spec from OpenShift DNS cluster config")
+		return "", fmt.Errorf("failed to get spec from OpenShift DNS cluster config: spec not found")
+	}
+
+	openShiftBaseDomain, found, err := unstructured.NestedString(spec, "baseDomain")
+	if err != nil || !found || openShiftBaseDomain == "" {
+		logger.Error(err, "Failed to get baseDomain from OpenShift DNS cluster config")
+		return "", fmt.Errorf("failed to get baseDomain from OpenShift DNS cluster config: baseDomain not found or empty")
+	}
+
+	// Format the baseDomain as "namespace.apps.openShiftBaseDomain"
+	// This matches the Helm template behavior when .noNs is false
+	detectedBaseDomain := fmt.Sprintf("%s.apps.%s", namespace, openShiftBaseDomain)
+
+	logger.Info("Auto-detected baseDomain from OpenShift DNS cluster config",
+		"openShiftBaseDomain", openShiftBaseDomain,
+		"detectedBaseDomain", detectedBaseDomain,
+		"namespace", namespace)
+
+	return detectedBaseDomain, nil
 }
