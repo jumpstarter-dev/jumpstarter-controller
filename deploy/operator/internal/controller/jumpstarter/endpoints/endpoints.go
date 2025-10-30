@@ -139,15 +139,39 @@ func (r *Reconciler) ReconcileControllerEndpoint(ctx context.Context, owner meta
 		"app": "jumpstarter-controller",
 	}
 
-	// Create a service for each enabled service type
-	// This allows multiple service types to coexist for the same endpoint
-	// Note: ClusterIP uses no suffix (most common for in-cluster communication)
-	//       LoadBalancer uses "-lb" suffix, NodePort uses "-np" suffix
+	// Create ingress and route resources
+	if err := r.createIngressAndRouteForController(ctx, owner, endpoint, servicePort, baseLabels); err != nil {
+		return err
+	}
 
+	// Create LoadBalancer service
+	if err := r.createLoadBalancerServiceForController(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create NodePort service
+	if err := r.createNodePortServiceForController(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create ClusterIP service
+	if err := r.createClusterIPServiceForController(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create default service if no service type is enabled
+	if err := r.createDefaultServiceForController(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createIngressAndRouteForController creates ingress and route resources for controller endpoint
+func (r *Reconciler) createIngressAndRouteForController(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, baseLabels map[string]string) error {
 	// Ingress resource (uses ClusterIP service)
 	if endpoint.Ingress != nil && endpoint.Ingress.Enabled {
 		serviceName := servicePort.Name
-		// Create the Ingress resource pointing to the ClusterIP service
 		if err := r.createIngressForEndpoint(ctx, owner, serviceName, servicePort.Port, endpoint, baseLabels); err != nil {
 			return err
 		}
@@ -156,29 +180,34 @@ func (r *Reconciler) ReconcileControllerEndpoint(ctx context.Context, owner meta
 	// Route resource (uses ClusterIP service)
 	if endpoint.Route != nil && endpoint.Route.Enabled {
 		serviceName := servicePort.Name
-		// Create the Route resource pointing to the ClusterIP service
 		if err := r.createRouteForEndpoint(ctx, owner, serviceName, servicePort.Port, endpoint, baseLabels); err != nil {
 			return err
 		}
 	}
 
-	// LoadBalancer service
+	return nil
+}
+
+// createLoadBalancerServiceForController creates LoadBalancer service for controller endpoint
+func (r *Reconciler) createLoadBalancerServiceForController(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	if endpoint.LoadBalancer != nil && endpoint.LoadBalancer.Enabled {
-		if err := r.createService(ctx, owner, servicePort, "-lb", corev1.ServiceTypeLoadBalancer,
-			podSelector, baseLabels, endpoint.LoadBalancer.Annotations, endpoint.LoadBalancer.Labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "-lb", corev1.ServiceTypeLoadBalancer,
+			podSelector, baseLabels, endpoint.LoadBalancer.Annotations, endpoint.LoadBalancer.Labels)
 	}
+	return nil
+}
 
-	// NodePort service
+// createNodePortServiceForController creates NodePort service for controller endpoint
+func (r *Reconciler) createNodePortServiceForController(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	if endpoint.NodePort != nil && endpoint.NodePort.Enabled {
-		if err := r.createService(ctx, owner, servicePort, "-np", corev1.ServiceTypeNodePort,
-			podSelector, baseLabels, endpoint.NodePort.Annotations, endpoint.NodePort.Labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "-np", corev1.ServiceTypeNodePort,
+			podSelector, baseLabels, endpoint.NodePort.Annotations, endpoint.NodePort.Labels)
 	}
+	return nil
+}
 
-	// ClusterIP service (no suffix for cleaner in-cluster service names)
+// createClusterIPServiceForController creates ClusterIP service for controller endpoint
+func (r *Reconciler) createClusterIPServiceForController(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	// Create ClusterIP if explicitly enabled OR if Ingress/Route need it
 	if (endpoint.ClusterIP != nil && endpoint.ClusterIP.Enabled) ||
 		(endpoint.Ingress != nil && endpoint.Ingress.Enabled) ||
@@ -189,12 +218,14 @@ func (r *Reconciler) ReconcileControllerEndpoint(ctx context.Context, owner meta
 			annotations = endpoint.ClusterIP.Annotations
 			labels = endpoint.ClusterIP.Labels
 		}
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, annotations, labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
+			podSelector, baseLabels, annotations, labels)
 	}
+	return nil
+}
 
+// createDefaultServiceForController creates default ClusterIP service if no service type is enabled
+func (r *Reconciler) createDefaultServiceForController(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	// If no service type is explicitly enabled, create a default ClusterIP service
 	if (endpoint.LoadBalancer == nil || !endpoint.LoadBalancer.Enabled) &&
 		(endpoint.NodePort == nil || !endpoint.NodePort.Enabled) &&
@@ -203,12 +234,9 @@ func (r *Reconciler) ReconcileControllerEndpoint(ctx context.Context, owner meta
 		(endpoint.Route == nil || !endpoint.Route.Enabled) {
 
 		// TODO: Default to Route or Ingress depending of the type of cluster
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, nil, nil); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
+			podSelector, baseLabels, nil, nil)
 	}
-
 	return nil
 }
 
@@ -231,15 +259,39 @@ func (r *Reconciler) ReconcileRouterReplicaEndpoint(ctx context.Context, owner m
 		"app": baseAppLabel, // e.g., "jumpstarter-router-0"
 	}
 
-	// Create a service for each enabled service type
-	// This allows multiple service types to coexist for the same endpoint
-	// Note: ClusterIP uses no suffix (most common for in-cluster communication)
-	//       LoadBalancer uses "-lb" suffix, NodePort uses "-np" suffix
+	// Create ingress and route resources
+	if err := r.createIngressAndRouteForRouter(ctx, owner, endpoint, servicePort, baseLabels); err != nil {
+		return err
+	}
 
+	// Create LoadBalancer service
+	if err := r.createLoadBalancerServiceForRouter(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create NodePort service
+	if err := r.createNodePortServiceForRouter(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create ClusterIP service
+	if err := r.createClusterIPServiceForRouter(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	// Create default service if no service type is enabled
+	if err := r.createDefaultServiceForRouter(ctx, owner, endpoint, servicePort, podSelector, baseLabels); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createIngressAndRouteForRouter creates ingress and route resources for router endpoint
+func (r *Reconciler) createIngressAndRouteForRouter(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, baseLabels map[string]string) error {
 	// Ingress resource (uses ClusterIP service)
 	if endpoint.Ingress != nil && endpoint.Ingress.Enabled {
 		serviceName := servicePort.Name
-		// Create the Ingress resource pointing to the ClusterIP service
 		if err := r.createIngressForEndpoint(ctx, owner, serviceName, servicePort.Port, endpoint, baseLabels); err != nil {
 			return err
 		}
@@ -248,29 +300,34 @@ func (r *Reconciler) ReconcileRouterReplicaEndpoint(ctx context.Context, owner m
 	// Route resource (uses ClusterIP service)
 	if endpoint.Route != nil && endpoint.Route.Enabled {
 		serviceName := servicePort.Name
-		// Create the Route resource pointing to the ClusterIP service
 		if err := r.createRouteForEndpoint(ctx, owner, serviceName, servicePort.Port, endpoint, baseLabels); err != nil {
 			return err
 		}
 	}
 
-	// LoadBalancer service
+	return nil
+}
+
+// createLoadBalancerServiceForRouter creates LoadBalancer service for router endpoint
+func (r *Reconciler) createLoadBalancerServiceForRouter(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	if endpoint.LoadBalancer != nil && endpoint.LoadBalancer.Enabled {
-		if err := r.createService(ctx, owner, servicePort, "-lb", corev1.ServiceTypeLoadBalancer,
-			podSelector, baseLabels, endpoint.LoadBalancer.Annotations, endpoint.LoadBalancer.Labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "-lb", corev1.ServiceTypeLoadBalancer,
+			podSelector, baseLabels, endpoint.LoadBalancer.Annotations, endpoint.LoadBalancer.Labels)
 	}
+	return nil
+}
 
-	// NodePort service
+// createNodePortServiceForRouter creates NodePort service for router endpoint
+func (r *Reconciler) createNodePortServiceForRouter(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	if endpoint.NodePort != nil && endpoint.NodePort.Enabled {
-		if err := r.createService(ctx, owner, servicePort, "-np", corev1.ServiceTypeNodePort,
-			podSelector, baseLabels, endpoint.NodePort.Annotations, endpoint.NodePort.Labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "-np", corev1.ServiceTypeNodePort,
+			podSelector, baseLabels, endpoint.NodePort.Annotations, endpoint.NodePort.Labels)
 	}
+	return nil
+}
 
-	// ClusterIP service (no suffix for cleaner in-cluster service names)
+// createClusterIPServiceForRouter creates ClusterIP service for router endpoint
+func (r *Reconciler) createClusterIPServiceForRouter(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	// Create ClusterIP if explicitly enabled OR if Ingress/Route need it
 	if (endpoint.ClusterIP != nil && endpoint.ClusterIP.Enabled) ||
 		(endpoint.Ingress != nil && endpoint.Ingress.Enabled) ||
@@ -281,26 +338,23 @@ func (r *Reconciler) ReconcileRouterReplicaEndpoint(ctx context.Context, owner m
 			annotations = endpoint.ClusterIP.Annotations
 			labels = endpoint.ClusterIP.Labels
 		}
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, annotations, labels); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
+			podSelector, baseLabels, annotations, labels)
 	}
+	return nil
+}
 
+// createDefaultServiceForRouter creates default ClusterIP service if no service type is enabled
+func (r *Reconciler) createDefaultServiceForRouter(ctx context.Context, owner metav1.Object, endpoint *operatorv1alpha1.Endpoint, servicePort corev1.ServicePort, podSelector map[string]string, baseLabels map[string]string) error {
 	// If no service type is explicitly enabled, create a default ClusterIP service
 	if (endpoint.LoadBalancer == nil || !endpoint.LoadBalancer.Enabled) &&
 		(endpoint.NodePort == nil || !endpoint.NodePort.Enabled) &&
 		(endpoint.ClusterIP == nil || !endpoint.ClusterIP.Enabled) &&
 		(endpoint.Ingress == nil || !endpoint.Ingress.Enabled) &&
 		(endpoint.Route == nil || !endpoint.Route.Enabled) {
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, nil, nil); err != nil {
-			return err
-		}
+		return r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
+			podSelector, baseLabels, nil, nil)
 	}
-
-	// Note: Ingress resources are now created above. Route resources still need to be implemented.
-
 	return nil
 }
 
