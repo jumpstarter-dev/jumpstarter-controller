@@ -77,6 +77,8 @@ install_nginx_ingress() {
     sleep 1
   done
 
+  sleep 5 # let the pods start to be available
+
   kubectl wait --namespace ingress-nginx \
     --for=condition=ready pod \
     --selector=app.kubernetes.io/component=controller \
