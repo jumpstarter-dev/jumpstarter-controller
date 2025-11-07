@@ -10,11 +10,14 @@ import (
 )
 
 func (e *Exporter) InternalSubject() string {
-	return strings.Join([]string{"exporter", e.Namespace, e.Name, string(e.UID)}, ":")
+	return strings.Join([]string{"exporter", e.Name}, ":")
 }
 
 func (e *Exporter) Usernames(prefix string) []string {
-	usernames := []string{prefix + e.InternalSubject()}
+	usernames := []string{
+		prefix + strings.Join([]string{"exporter", e.Name}, ":"),                             // New portable format
+		prefix + strings.Join([]string{"exporter", e.Namespace, e.Name, string(e.UID)}, ":"), // Legacy format
+	}
 
 	if e.Spec.Username != nil {
 		usernames = append(usernames, *e.Spec.Username)
