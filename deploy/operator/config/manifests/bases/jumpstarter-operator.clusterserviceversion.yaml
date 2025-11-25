@@ -2,7 +2,78 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "jumpstarter.dev/v1alpha1",
+          "kind": "Exporter",
+          "metadata": {
+            "name": "example-exporter",
+            "labels": {
+              "type": "nxp-imx8mm-evk"
+            }
+          },
+          "spec": {}
+        },
+        {
+          "apiVersion": "jumpstarter.dev/v1alpha1",
+          "kind": "Lease",
+          "metadata": {
+            "name": "example-lease"
+          },
+          "spec": {
+            "clientRef": {
+              "name": "example-client"
+            },
+            "selector": {
+              "matchLabels": {
+                "board": "rcar-s4"
+              }
+            },
+            "duration": "1h"
+          }
+        },
+        {
+          "apiVersion": "jumpstarter.dev/v1alpha1",
+          "kind": "Client",
+          "metadata": {
+            "name": "example-client",
+            "labels": {
+              "type": "developer"
+            }
+          },
+          "spec": {
+            "username": "keycloak:user-name-in-keycloak"
+          }
+        },
+        {
+          "apiVersion": "jumpstarter.dev/v1alpha1",
+          "kind": "ExporterAccessPolicy",
+          "metadata": {
+            "name": "example-exporter-access-policy"
+          },
+          "spec": {
+            "exporterSelector": {
+              "matchLabels": {
+                "lab": "jumpstarter"
+              }
+            },
+            "policies": [
+              {
+                "from": [
+                  {
+                    "clientSelector": {
+                      "matchLabels": {
+                        "team": "platform"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     capabilities: Basic Install
   name: jumpstarter-operator.v0.0.0
   namespace: placeholder
@@ -10,6 +81,32 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: |
+        Client is the schema for the Clients API. Clients represent a user that can access the Jumpstarter Controller. Clients can be associated to external identity OIDC providers by providing Username, i.e. Spec.Username: "kc:user-name-in-keycloak"
+      displayName: Client
+      kind: Client
+      name: clients.jumpstarter.dev
+      version: v1alpha1
+    - description: Exporter access policies define how exporters can be accessed by
+        clients.
+      displayName: ExporterAccessPolicy
+      kind: ExporterAccessPolicy
+      name: exporteraccesspolicies.jumpstarter.dev
+      version: v1alpha1
+    - description: |
+        Exporters represent the services that connect to the physical or virtual devices. They are responsible for providing the access to the devices and for the communication with the devices. A jumpstarter exporter service should be ran on a linux machine, or a pod, with the exporter credentials and the right configuration for this resource to become online. For more information see the Jumpstarter documentation: https://jumpstarter.dev/main/introduction/exporters.html#exporters
+      displayName: Exporter
+      kind: Exporter
+      name: exporters.jumpstarter.dev
+      version: v1alpha1
+    - description: |
+        Lease is the schema for the Leases API. Leases represent a request for a specific exporter by a client. The lease is acquired by the client and the exporter is assigned to the lease. The lease is released by the client when the client is done with the exporter. For more information see the Jumpstarter documentation:
+          https://jumpstarter.dev/main/reference/man-pages/jmp.html#jmp-create-lease
+          https://jumpstarter.dev/main/reference/man-pages/jmp.html#jmp-shell
+      displayName: Lease
+      kind: Lease
+      name: leases.jumpstarter.dev
+      version: v1alpha1
     - description: Jumpstarter is the Schema for the jumpstarters API.
       displayName: Jumpstarter
       kind: Jumpstarter
@@ -23,8 +120,8 @@ spec:
     "exporters") directly from your Kubernetes or OpenShift cluster.
   displayName: Jumpstarter Operator
   icon:
-  - base64data: ""
-    mediatype: ""
+  - base64data: PHN2ZyB3aWR0aD0iMjkwIiBoZWlnaHQ9IjM2NCIgdmlld0JveD0iMCAwIDI5MCAzNjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04Ny40OTIyIDIxMy42N0w4Ny41NCAyMTMuMjczQzg3Ljg4MTMgMjExLjU2NyA4Ny41NCAyMTAuMjAxIDg2LjUxNiAyMDkuMTc3Qzg1LjQ5MiAyMDcuODEyIDg0LjEyNjcgMjA3LjEyOSA4Mi40MiAyMDcuMTI5SDExLjc2NEMxMC4wNTczIDIwNy4xMjkgOC41MjEzMyAyMDcuODEyIDcuMTU2IDIwOS4xNzdDNi4xMzIgMjEwLjIwMSA1LjQ0OTMzIDIxMS41NjcgNS4xMDggMjEzLjI3M0wxLjUyNCAyNDMuNDgxQzAuODQxMzMzIDI1MS42NzMgMC41IDI1Ny40NzYgMC41IDI2MC44ODlDMC41IDI5MS45NTEgMTAuNzQgMzE2Ljg2OCAzMS4yMiAzMzUuNjQxQzUyLjA0MTMgMzU0LjA3MyA4MC4yMDEzIDM2My4yODkgMTE1LjcgMzYzLjI4OUMxNDAuOTU5IDM2My4yODkgMTYzLjk5OSAzNTguMzQgMTg0LjgyIDM0OC40NDFDMjA1Ljk4MyAzMzguMjAxIDIyMy4wNDkgMzI0LjAzNiAyMzYuMDIgMzA1Ljk0NUMyNDkuMzMyIDI4Ny44NTUgMjU3LjM1MyAyNjcuMDMzIDI2MC4wODQgMjQzLjQ4MUwyODkuMjY4IDYuOTM3MjZDMjg5LjYwOSA1LjIzMDYgMjg5LjI2OCAzLjg2NTI2IDI4OC4yNDQgMi44NDEyNUMyODcuMjIgMS40NzU5MiAyODUuODU1IDAuNzkzMjQ4IDI4NC4xNDggMC43OTMyNDhIMjE0LjAwNEMyMTIuMjk3IDAuNzkzMjQ4IDIxMC43NjEgMS40NzU5MiAyMDkuMzk2IDIuODQxMjVDMjA4LjM3MiAzLjg2NTI2IDIwNy42ODkgNS4yMzA2IDIwNy4zNDggNi45MzcyNkwxOTMuNzkyIDExNi41NzJIMjIwLjA5MkMyNDYuNTc2IDExNi41NzIgMjYxLjU5NiAxNDYuOTA2IDI0NS41NDMgMTY3Ljk2OUwxMTUuMTc1IDMzOS4wMkM5Ny4wNDc5IDM2Mi44MDQgNTkuMjYxNSAzNDUuNDIyIDY1LjUyNyAzMTYuMTgxTDg3LjQ5MjIgMjEzLjY3WiIgZmlsbD0iIzIxMjEyMSIvPgo8cGF0aCBkPSJNMTc2LjA3NyAxLjkyMjJMMzMuMDM4OCAxNjkuMTQ5QzI4LjU5ODYgMTc0LjM0IDMyLjI4NzMgMTgyLjM0OSAzOS4xMTgyIDE4Mi4zNDlIMTA4Ljg1MkMxMTMuOTQ1IDE4Mi4zNDkgMTE3Ljc0MiAxODcuMDQ1IDExNi42NzUgMTkyLjAyNUw4OC45OTQ0IDMyMS4yMDlDODguMDk5MyAzMjUuMzg2IDkzLjQ5NzMgMzI3Ljg3IDk2LjA4NjkgMzI0LjQ3MkwyMjYuNDU1IDE1My40MjFDMjMwLjQ2OCAxNDguMTU1IDIyNi43MTMgMTQwLjU3MiAyMjAuMDkyIDE0MC41NzJIMTUzLjg4QzE0OC41MzcgMTQwLjU3MiAxNDQuNjk2IDEzNS40MzUgMTQ2LjIwNyAxMzAuMzFMMTgyLjk1NCA1LjY1MzI3QzE4NC4xNzQgMS41MTUgMTc4Ljg4MiAtMS4zNTYzOCAxNzYuMDc3IDEuOTIyMloiIGZpbGw9IiNGRkMxMDciLz4KPC9zdmc+Cg==
+    mediatype: image/svg+xml
   install:
     spec:
       deployments: null
@@ -52,7 +149,12 @@ spec:
   maintainers:
   - email: majopela@redhat.com
     name: Miguel Angel Ajo
+  - email: bzlotnik@redhat.com
+    name: Benny Zlotnik
+  - email: bkhizgiy@redhat.com
+    name: Bella Khizgiyaev
   maturity: alpha
+  minKubeVersion: 1.28.0
   provider:
     name: The Jumpstarter Community
     url: https://jumpstarter.dev
