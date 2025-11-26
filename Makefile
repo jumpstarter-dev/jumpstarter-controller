@@ -62,7 +62,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) 	rbac:roleName=jumpstarter-manager-role crd webhook paths="./api/..." paths="./internal/..." \
 						output:crd:artifacts:config=deploy/helm/jumpstarter/crds/ \
 						output:rbac:artifacts:config=deploy/helm/jumpstarter/charts/jumpstarter-controller/templates/rbac/
-
+	# copy the crds to the operator bases directory
 	cp deploy/helm/jumpstarter/crds/* deploy/operator/config/crd/bases/
 
 .PHONY: generate
