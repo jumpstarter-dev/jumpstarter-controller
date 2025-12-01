@@ -3,6 +3,7 @@ namespace: jumpstarter-exporters
 resources:
   - exporters-statefulset.yaml
   - vcan-exporters-statefulset.yaml
+  - qemu-exporters-statefulset.yaml
 configMapGenerator:
 - name: exporter-configs
   files:
@@ -16,4 +17,8 @@ configMapGenerator:
   - gen/vcan-exporter-2.yaml
   - gen/vcan-exporter-3.yaml
   - gen/vcan-exporter-4.yaml
-
+  - gen/qemu-exporter-0.yaml
+  - gen/qemu-exporter-1.yaml
+  - gen/qemu-exporter-2.yaml
+  - gen/qemu-exporter-3.yaml
+  - gen/qemu-exporter-4.yaml
