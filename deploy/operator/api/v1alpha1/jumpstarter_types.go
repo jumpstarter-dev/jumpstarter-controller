@@ -131,6 +131,7 @@ type JumpstarterSpec struct {
 	// Base domain used to construct FQDNs for all service endpoints.
 	// This domain will be used to generate the default hostnames for Routes, Ingresses, and certificates.
 	// Example: "example.com" will generate endpoints like "grpc.example.com", "router.example.com"
+	// +kubebuilder:default="jumpstarter.example.com"
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?$
 	BaseDomain string `json:"baseDomain,omitempty"`
 
@@ -142,10 +143,12 @@ type JumpstarterSpec struct {
 
 	// Controller configuration for the main Jumpstarter API and gRPC services.
 	// The controller handles gRPC and REST API requests from clients and exporters.
+	// +kubebuilder:default={}
 	Controller ControllerConfig `json:"controller,omitempty"`
 
 	// Router configuration for the Jumpstarter router service.
 	// Routers handle gRPC traffic routing and load balancing.
+	// +kubebuilder:default={}
 	Routers RoutersConfig `json:"routers,omitempty"`
 
 	// Authentication configuration for client and exporter authentication.
@@ -158,6 +161,7 @@ type JumpstarterSpec struct {
 type RoutersConfig struct {
 	// Container image for the router pods in 'registry/repository/image:tag' format.
 	// If not specified, defaults to the latest stable version of the Jumpstarter router.
+	// +kubebuilder:default="quay.io/jumpstarter-dev/jumpstarter-controller:latest"
 	Image string `json:"image,omitempty"`
 
 	// Image pull policy for the router container.
@@ -192,6 +196,7 @@ type RoutersConfig struct {
 type ControllerConfig struct {
 	// Container image for the controller pods in 'registry/repository/image:tag' format.
 	// If not specified, defaults to the latest stable version of the Jumpstarter controller.
+	// +kubebuilder:default="quay.io/jumpstarter-dev/jumpstarter-controller:latest"
 	Image string `json:"image,omitempty"`
 
 	// Image pull policy for the controller container.
@@ -525,6 +530,7 @@ type Jumpstarter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:default={}
 	Spec   JumpstarterSpec   `json:"spec,omitempty"`
 	Status JumpstarterStatus `json:"status,omitempty"`
 }

@@ -440,6 +440,7 @@ spec:
           metadata:
             type: object
           spec:
+            default: {}
             description: |-
               JumpstarterSpec defines the desired state of a Jumpstarter deployment. A deployment
               can be created in a namespace of the cluster, and that's where all the Jumpstarter
@@ -826,6 +827,7 @@ spec:
                     type: object
                 type: object
               baseDomain:
+                default: jumpstarter.example.com
                 description: |-
                   Base domain used to construct FQDNs for all service endpoints.
                   This domain will be used to generate the default hostnames for Routes, Ingresses, and certificates.
@@ -833,6 +835,7 @@ spec:
                 pattern: ^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?$
                 type: string
               controller:
+                default: {}
                 description: |-
                   Controller configuration for the main Jumpstarter API and gRPC services.
                   The controller handles gRPC and REST API requests from clients and exporters.
@@ -1486,6 +1489,7 @@ spec:
                         type: object
                     type: object
                   image:
+                    default: quay.io/jumpstarter-dev/jumpstarter-controller:latest
                     description: |-
                       Container image for the controller pods in 'registry/repository/image:tag' format.
                       If not specified, defaults to the latest stable version of the Jumpstarter controller.
@@ -1771,6 +1775,7 @@ spec:
                     type: object
                 type: object
               routers:
+                default: {}
                 description: |-
                   Router configuration for the Jumpstarter router service.
                   Routers handle gRPC traffic routing and load balancing.
@@ -2029,6 +2034,7 @@ spec:
                         type: object
                     type: object
                   image:
+                    default: quay.io/jumpstarter-dev/jumpstarter-controller:latest
                     description: |-
                       Container image for the router pods in 'registry/repository/image:tag' format.
                       If not specified, defaults to the latest stable version of the Jumpstarter router.
