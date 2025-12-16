@@ -37,7 +37,6 @@ spec:
           metadata:
             type: object
           spec:
-            default: {}
             description: |-
               JumpstarterSpec defines the desired state of a Jumpstarter deployment. A deployment
               can be created in a namespace of the cluster, and that's where all the Jumpstarter
@@ -424,7 +423,6 @@ spec:
                     type: object
                 type: object
               baseDomain:
-                default: jumpstarter.example.com
                 description: |-
                   Base domain used to construct FQDNs for all service endpoints.
                   This domain will be used to generate the default hostnames for Routes, Ingresses, and certificates.
@@ -1900,6 +1898,8 @@ spec:
                   When enabled, jumpstarter will interact with cert-manager to automatically provision
                   and renew TLS certificates for all endpoints. Requires cert-manager to be installed in the cluster.
                 type: boolean
+            required:
+            - baseDomain
             type: object
           status:
             description: |-
@@ -1907,6 +1907,8 @@ spec:
               This field is currently empty but can be extended to include status information
               such as deployment status, endpoint URLs, and health information.
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

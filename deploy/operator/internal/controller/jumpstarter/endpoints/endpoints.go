@@ -201,33 +201,6 @@ func (r *Reconciler) ReconcileControllerEndpoint(ctx context.Context, owner meta
 		}
 	}
 
-	// If no service type is explicitly enabled, auto-select based on cluster capabilities
-	if (endpoint.LoadBalancer == nil || !endpoint.LoadBalancer.Enabled) &&
-		(endpoint.NodePort == nil || !endpoint.NodePort.Enabled) &&
-		(endpoint.ClusterIP == nil || !endpoint.ClusterIP.Enabled) &&
-		(endpoint.Ingress == nil || !endpoint.Ingress.Enabled) &&
-		(endpoint.Route == nil || !endpoint.Route.Enabled) {
-
-		// Auto-select networking type based on cluster capabilities
-		if r.RouteAvailable {
-			// OpenShift cluster - use Route
-			if err := r.createRouteForEndpoint(ctx, owner, servicePort.Name, servicePort.Port, endpoint, baseLabels); err != nil {
-				return err
-			}
-		} else if r.IngressAvailable {
-			// Standard K8s cluster - use Ingress
-			if err := r.createIngressForEndpoint(ctx, owner, servicePort.Name, servicePort.Port, endpoint, baseLabels); err != nil {
-				return err
-			}
-		}
-
-		// Always create ClusterIP service (needed by Route/Ingress, or as standalone fallback)
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, nil, nil); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -302,33 +275,6 @@ func (r *Reconciler) ReconcileRouterReplicaEndpoint(ctx context.Context, owner m
 		}
 		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
 			podSelector, baseLabels, annotations, labels); err != nil {
-			return err
-		}
-	}
-
-	// If no service type is explicitly enabled, auto-select based on cluster capabilities
-	if (endpoint.LoadBalancer == nil || !endpoint.LoadBalancer.Enabled) &&
-		(endpoint.NodePort == nil || !endpoint.NodePort.Enabled) &&
-		(endpoint.ClusterIP == nil || !endpoint.ClusterIP.Enabled) &&
-		(endpoint.Ingress == nil || !endpoint.Ingress.Enabled) &&
-		(endpoint.Route == nil || !endpoint.Route.Enabled) {
-
-		// Auto-select networking type based on cluster capabilities
-		if r.RouteAvailable {
-			// OpenShift cluster - use Route
-			if err := r.createRouteForEndpoint(ctx, owner, servicePort.Name, servicePort.Port, endpoint, baseLabels); err != nil {
-				return err
-			}
-		} else if r.IngressAvailable {
-			// Standard K8s cluster - use Ingress
-			if err := r.createIngressForEndpoint(ctx, owner, servicePort.Name, servicePort.Port, endpoint, baseLabels); err != nil {
-				return err
-			}
-		}
-
-		// Always create ClusterIP service (needed by Route/Ingress, or as standalone fallback)
-		if err := r.createService(ctx, owner, servicePort, "", corev1.ServiceTypeClusterIP,
-			podSelector, baseLabels, nil, nil); err != nil {
 			return err
 		}
 	}

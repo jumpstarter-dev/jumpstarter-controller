@@ -131,9 +131,9 @@ type JumpstarterSpec struct {
 	// Base domain used to construct FQDNs for all service endpoints.
 	// This domain will be used to generate the default hostnames for Routes, Ingresses, and certificates.
 	// Example: "example.com" will generate endpoints like "grpc.example.com", "router.example.com"
-	// +kubebuilder:default="jumpstarter.example.com"
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?$
-	BaseDomain string `json:"baseDomain,omitempty"`
+	BaseDomain string `json:"baseDomain"`
 
 	// Enable automatic TLS certificate management using cert-manager.
 	// When enabled, jumpstarter will interact with cert-manager to automatically provision
@@ -530,8 +530,8 @@ type Jumpstarter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// +kubebuilder:default={}
-	Spec   JumpstarterSpec   `json:"spec,omitempty"`
+	// +kubebuilder:validation:Required
+	Spec   JumpstarterSpec   `json:"spec"`
 	Status JumpstarterStatus `json:"status,omitempty"`
 }
 

@@ -22,8 +22,32 @@ import (
 	operatorv1alpha1 "github.com/jumpstarter-dev/jumpstarter-controller/deploy/operator/api/v1alpha1"
 )
 
+// ensureEndpointServiceType ensures an endpoint has a service type enabled.
+// If no service type is enabled, it auto-selects Route (if available), Ingress (if available),
+// or ClusterIP as a fallback.
+func ensureEndpointServiceType(endpoint *operatorv1alpha1.Endpoint, routeAvailable, ingressAvailable bool) {
+	// Skip if any service type is already enabled
+	if (endpoint.Route != nil && endpoint.Route.Enabled) ||
+		(endpoint.Ingress != nil && endpoint.Ingress.Enabled) ||
+		(endpoint.LoadBalancer != nil && endpoint.LoadBalancer.Enabled) ||
+		(endpoint.NodePort != nil && endpoint.NodePort.Enabled) ||
+		(endpoint.ClusterIP != nil && endpoint.ClusterIP.Enabled) {
+		return
+	}
+
+	// Auto-select based on cluster capabilities, fallback to ClusterIP
+	if routeAvailable {
+		endpoint.Route = &operatorv1alpha1.RouteConfig{Enabled: true}
+	} else if ingressAvailable {
+		endpoint.Ingress = &operatorv1alpha1.IngressConfig{Enabled: true}
+	} else {
+		endpoint.ClusterIP = &operatorv1alpha1.ClusterIPConfig{Enabled: true}
+	}
+}
+
 // ApplyEndpointDefaults generates default endpoints for a JumpstarterSpec
 // based on the baseDomain and cluster capabilities (Route vs Ingress availability).
+// It also ensures all existing endpoints have a service type enabled.
 func ApplyEndpointDefaults(spec *operatorv1alpha1.JumpstarterSpec, routeAvailable, ingressAvailable bool) {
 	// Skip endpoint generation if no baseDomain is set
 	if spec.BaseDomain == "" {
@@ -35,13 +59,13 @@ func ApplyEndpointDefaults(spec *operatorv1alpha1.JumpstarterSpec, routeAvailabl
 		endpoint := operatorv1alpha1.Endpoint{
 			Address: fmt.Sprintf("grpc.%s", spec.BaseDomain),
 		}
-		// Auto-select Route or Ingress based on cluster capabilities
-		if routeAvailable {
-			endpoint.Route = &operatorv1alpha1.RouteConfig{Enabled: true}
-		} else if ingressAvailable {
-			endpoint.Ingress = &operatorv1alpha1.IngressConfig{Enabled: true}
-		}
+		ensureEndpointServiceType(&endpoint, routeAvailable, ingressAvailable)
 		spec.Controller.GRPC.Endpoints = []operatorv1alpha1.Endpoint{endpoint}
+	} else {
+		// Ensure existing endpoints have a service type enabled
+		for i := range spec.Controller.GRPC.Endpoints {
+			ensureEndpointServiceType(&spec.Controller.GRPC.Endpoints[i], routeAvailable, ingressAvailable)
+		}
 	}
 
 	// Generate default router gRPC endpoints if none specified
@@ -50,12 +74,12 @@ func ApplyEndpointDefaults(spec *operatorv1alpha1.JumpstarterSpec, routeAvailabl
 			// Use $(replica) placeholder for per-replica addresses
 			Address: fmt.Sprintf("router-$(replica).%s", spec.BaseDomain),
 		}
-		// Auto-select Route or Ingress based on cluster capabilities
-		if routeAvailable {
-			endpoint.Route = &operatorv1alpha1.RouteConfig{Enabled: true}
-		} else if ingressAvailable {
-			endpoint.Ingress = &operatorv1alpha1.IngressConfig{Enabled: true}
-		}
+		ensureEndpointServiceType(&endpoint, routeAvailable, ingressAvailable)
 		spec.Routers.GRPC.Endpoints = []operatorv1alpha1.Endpoint{endpoint}
+	} else {
+		// Ensure existing endpoints have a service type enabled
+		for i := range spec.Routers.GRPC.Endpoints {
+			ensureEndpointServiceType(&spec.Routers.GRPC.Endpoints[i], routeAvailable, ingressAvailable)
+		}
 	}
 }
