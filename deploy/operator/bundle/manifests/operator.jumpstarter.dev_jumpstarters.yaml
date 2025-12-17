@@ -1898,8 +1898,6 @@ spec:
                   When enabled, jumpstarter will interact with cert-manager to automatically provision
                   and renew TLS certificates for all endpoints. Requires cert-manager to be installed in the cluster.
                 type: boolean
-            required:
-            - baseDomain
             type: object
           status:
             description: |-
@@ -1907,8 +1905,6 @@ spec:
               This field is currently empty but can be extended to include status information
               such as deployment status, endpoint URLs, and health information.
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true
