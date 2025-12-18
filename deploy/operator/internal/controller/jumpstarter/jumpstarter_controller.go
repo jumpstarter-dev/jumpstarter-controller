@@ -86,6 +86,9 @@ type JumpstarterReconciler struct {
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes/custom-host,verbs=get;create;update;patch
 
+// OpenShift cluster config (for baseDomain auto-detection)
+// +kubebuilder:rbac:groups=config.openshift.io,resources=ingresses,verbs=get;list;watch
+
 // Monitoring resources
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 

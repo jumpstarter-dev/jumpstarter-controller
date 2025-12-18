@@ -17,7 +17,13 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -47,4 +53,73 @@ func discoverAPIResource(config *rest.Config, groupVersion, kind string) bool {
 	}
 
 	return false
+}
+
+// detectOpenShiftBaseDomain attempts to detect the cluster's base domain from OpenShift's
+// ingresses.config.openshift.io/cluster resource. Returns empty string if not available.
+func detectOpenShiftBaseDomain(config *rest.Config) string {
+	logger := log.Log.WithName("basedomain-detection")
+
+	// Create dynamic client for unstructured access to OpenShift config API
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		logger.Error(err, "Failed to create dynamic client for baseDomain detection")
+		return ""
+	}
+
+	// Define the GVR for ingresses.config.openshift.io
+	ingressGVR := schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "ingresses",
+	}
+
+	// Get the cluster-scoped "cluster" ingress config
+	ingressConfig, err := dynamicClient.Resource(ingressGVR).Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		// This is expected on non-OpenShift clusters, log at debug level
+		logger.V(1).Info("Could not fetch OpenShift ingress config (expected on non-OpenShift clusters)", "error", err.Error())
+		return ""
+	}
+
+	// Extract spec.domain from the unstructured object
+	domain, found, err := unstructuredNestedString(ingressConfig.Object, "spec", "domain")
+	if err != nil || !found {
+		logger.Info("OpenShift ingress config found but spec.domain not available")
+		return ""
+	}
+
+	// Add jumpstarter prefix to the cluster's apps domain
+	baseDomain := fmt.Sprintf("jumpstarter.%s", domain)
+	logger.Info("Auto-detected OpenShift baseDomain", "clusterDomain", domain, "baseDomain", baseDomain)
+	return baseDomain
+}
+
+// unstructuredNestedString extracts a nested string from an unstructured object
+func unstructuredNestedString(obj map[string]interface{}, fields ...string) (string, bool, error) {
+	val, found, err := nestedField(obj, fields...)
+	if !found || err != nil {
+		return "", found, err
+	}
+	s, ok := val.(string)
+	if !ok {
+		return "", false, nil
+	}
+	return s, true, nil
+}
+
+// nestedField extracts a nested field from a map
+func nestedField(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+	var val interface{} = obj
+	for _, field := range fields {
+		m, ok := val.(map[string]interface{})
+		if !ok {
+			return nil, false, nil
+		}
+		val, ok = m[field]
+		if !ok {
+			return nil, false, nil
+		}
+	}
+	return val, true, nil
 }
