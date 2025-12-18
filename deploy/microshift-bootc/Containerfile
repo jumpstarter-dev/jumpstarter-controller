@@ -1,8 +1,7 @@
 FROM ghcr.io/microshift-io/microshift:4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14
 # Install dependencies for config-svc
 RUN dnf install -y epel-release && \
-    dnf install -y python3 iproute python3-flask python3-pip && \
-    pip3 install python-pam && \
+    dnf install -y python3 iproute python3-flask python3-pip kernel-tools python3-pam && \
     dnf clean all
 
 # Install MicroShift manifests
