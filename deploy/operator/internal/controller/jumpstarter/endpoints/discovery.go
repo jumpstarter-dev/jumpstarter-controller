@@ -18,7 +18,6 @@ package endpoints
 
 import (
 	"context"
-	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -89,10 +88,8 @@ func detectOpenShiftBaseDomain(config *rest.Config) string {
 		return ""
 	}
 
-	// Add jumpstarter prefix to the cluster's apps domain
-	baseDomain := fmt.Sprintf("jumpstarter.%s", domain)
-	logger.Info("Auto-detected OpenShift baseDomain", "clusterDomain", domain, "baseDomain", baseDomain)
-	return baseDomain
+	logger.Info("Auto-detected OpenShift cluster domain", "domain", domain)
+	return domain
 }
 
 // unstructuredNestedString extracts a nested string from an unstructured object

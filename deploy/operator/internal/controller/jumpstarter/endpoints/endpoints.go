@@ -71,12 +71,11 @@ func NewReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Co
 
 // ApplyDefaults applies endpoint defaults to a JumpstarterSpec using the
 // reconciler's discovered cluster capabilities (Route vs Ingress availability).
-// If baseDomain is not provided in the spec, it will use the default baseDomain
-// (auto-detected from OpenShift cluster config) if available.
-func (r *Reconciler) ApplyDefaults(spec *operatorv1alpha1.JumpstarterSpec) {
-	// Use default baseDomain if not provided in spec
+// If baseDomain is not provided in the spec, it will generate one using the pattern
+// jumpstarter.$namespace.$clusterDomain (auto-detected from OpenShift cluster config).
+func (r *Reconciler) ApplyDefaults(spec *operatorv1alpha1.JumpstarterSpec, namespace string) {
 	if spec.BaseDomain == "" && r.DefaultBaseDomain != "" {
-		spec.BaseDomain = r.DefaultBaseDomain
+		spec.BaseDomain = fmt.Sprintf("jumpstarter.%s.%s", namespace, r.DefaultBaseDomain)
 	}
 	ApplyEndpointDefaults(spec, r.RouteAvailable, r.IngressAvailable)
 }
