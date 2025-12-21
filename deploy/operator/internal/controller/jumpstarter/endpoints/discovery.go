@@ -20,6 +20,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -82,41 +83,12 @@ func detectOpenShiftBaseDomain(config *rest.Config) string {
 	}
 
 	// Extract spec.domain from the unstructured object
-	domain, found, err := unstructuredNestedString(ingressConfig.Object, "spec", "domain")
-	if err != nil || !found {
+	domain, found, err := unstructured.NestedString(ingressConfig.Object, "spec", "domain")
+	if err != nil || !found || domain == "" {
 		logger.Info("OpenShift ingress config found but spec.domain not available")
 		return ""
 	}
 
 	logger.Info("Auto-detected OpenShift cluster domain", "domain", domain)
 	return domain
-}
-
-// unstructuredNestedString extracts a nested string from an unstructured object
-func unstructuredNestedString(obj map[string]interface{}, fields ...string) (string, bool, error) {
-	val, found, err := nestedField(obj, fields...)
-	if !found || err != nil {
-		return "", found, err
-	}
-	s, ok := val.(string)
-	if !ok {
-		return "", false, nil
-	}
-	return s, true, nil
-}
-
-// nestedField extracts a nested field from a map
-func nestedField(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-	var val interface{} = obj
-	for _, field := range fields {
-		m, ok := val.(map[string]interface{})
-		if !ok {
-			return nil, false, nil
-		}
-		val, ok = m[field]
-		if !ok {
-			return nil, false, nil
-		}
-	}
-	return val, true, nil
 }
