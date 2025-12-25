@@ -29,6 +29,9 @@ jobs:
           - image_name: jumpstarter-dev/jumpstarter-operator-bundle
             dockerfile: deploy/operator/bundle.Dockerfile
             context: deploy/operator
+          - image_name: quay.io/jumpstarter-dev/microshift/bootc:latest
+            dockerfile: deploy/microshift-bootc/Containerfile
+            context: .
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
