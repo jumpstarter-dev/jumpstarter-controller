@@ -174,14 +174,19 @@ func (s *ClientService) CreateLease(ctx context.Context, req *cpb.CreateLeaseReq
 		return nil, err
 	}
 
-	name, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
+	// Use provided lease_id if specified, otherwise generate a UUIDv7
+	name := req.LeaseId
+	if name == "" {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return nil, err
+		}
+		name = id.String()
 	}
 
 	jlease, err := jumpstarterdevv1alpha1.LeaseFromProtobuf(req.Lease, types.NamespacedName{
 		Namespace: namespace,
-		Name:      name.String(),
+		Name:      name,
 	}, corev1.LocalObjectReference{
 		Name: jclient.Name,
 	})
@@ -217,36 +222,65 @@ func (s *ClientService) UpdateLease(ctx context.Context, req *cpb.UpdateLeaseReq
 	}
 
 	original := kclient.MergeFrom(jlease.DeepCopy())
-	desired, err := jumpstarterdevv1alpha1.LeaseFromProtobuf(req.Lease, *key,
-		corev1.LocalObjectReference{
-			Name: jclient.Name,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
 
-	// BeginTime can only be updated before lease starts; only if explicitly provided
-	if req.Lease.BeginTime != nil {
-		if jlease.Status.ExporterRef != nil {
-			if jlease.Spec.BeginTime == nil || !jlease.Spec.BeginTime.Equal(desired.Spec.BeginTime) {
-				return nil, fmt.Errorf("cannot update BeginTime: lease has already started")
-			}
+	// Only parse time fields from protobuf if any are being updated
+	if req.Lease.BeginTime != nil || req.Lease.Duration != nil || req.Lease.EndTime != nil {
+		desired, err := jumpstarterdevv1alpha1.LeaseFromProtobuf(req.Lease, *key,
+			corev1.LocalObjectReference{
+				Name: jclient.Name,
+			},
+		)
+		if err != nil {
+			return nil, err
 		}
-		jlease.Spec.BeginTime = desired.Spec.BeginTime
-	}
-	// Update Duration only if provided; preserve existing otherwise
-	if req.Lease.Duration != nil {
-		jlease.Spec.Duration = desired.Spec.Duration
-	}
-	// Update EndTime only if provided; preserve existing otherwise
-	if req.Lease.EndTime != nil {
-		jlease.Spec.EndTime = desired.Spec.EndTime
+
+		// BeginTime can only be updated before lease starts; only if explicitly provided
+		if req.Lease.BeginTime != nil {
+			if jlease.Status.ExporterRef != nil {
+				if jlease.Spec.BeginTime == nil || !jlease.Spec.BeginTime.Equal(desired.Spec.BeginTime) {
+					return nil, fmt.Errorf("cannot update BeginTime: lease has already started")
+				}
+			}
+			jlease.Spec.BeginTime = desired.Spec.BeginTime
+		}
+		// Update Duration only if provided; preserve existing otherwise
+		if req.Lease.Duration != nil {
+			jlease.Spec.Duration = desired.Spec.Duration
+		}
+		// Update EndTime only if provided; preserve existing otherwise
+		if req.Lease.EndTime != nil {
+			jlease.Spec.EndTime = desired.Spec.EndTime
+		}
 	}
 
-	// Recalculate missing field or validate consistency
-	if err := jumpstarterdevv1alpha1.ReconcileLeaseTimeFields(&jlease.Spec.BeginTime, &jlease.Spec.EndTime, &jlease.Spec.Duration); err != nil {
-		return nil, err
+	// Transfer lease to a new client if specified
+	if req.Lease.Client != nil && *req.Lease.Client != "" {
+		// Only active leases can be transferred (has exporter, not ended)
+		if jlease.Status.ExporterRef == nil {
+			return nil, fmt.Errorf("cannot transfer lease: lease has not started yet")
+		}
+		if jlease.Status.Ended {
+			return nil, fmt.Errorf("cannot transfer lease: lease has already ended")
+		}
+		newClientKey, err := utils.ParseClientIdentifier(*req.Lease.Client)
+		if err != nil {
+			return nil, err
+		}
+		if newClientKey.Namespace != key.Namespace {
+			return nil, fmt.Errorf("cannot transfer lease to client in different namespace")
+		}
+		var newClient jumpstarterdevv1alpha1.Client
+		if err := s.Get(ctx, *newClientKey, &newClient); err != nil {
+			return nil, fmt.Errorf("target client not found: %w", err)
+		}
+		jlease.Spec.ClientRef.Name = newClientKey.Name
+	}
+
+	// Recalculate missing field or validate consistency (only if time fields were updated)
+	if req.Lease.BeginTime != nil || req.Lease.Duration != nil || req.Lease.EndTime != nil {
+		if err := jumpstarterdevv1alpha1.ReconcileLeaseTimeFields(&jlease.Spec.BeginTime, &jlease.Spec.EndTime, &jlease.Spec.Duration); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := s.Patch(ctx, &jlease, original); err != nil {
